@@ -5,219 +5,504 @@
     <title>Student Card Generator - Indian Universities</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body { 
-            background: #f0f0f0; 
-            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
+            min-height: 100vh;
         }
         
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
+        }
+        
+        .header-section {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+        
+        .main-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
         }
         
         .controls {
             text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .controls h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
         
         .btn {
-            padding: 12px 24px;
-            margin: 0 10px;
+            padding: 15px 30px;
             font-size: 16px;
+            font-weight: 600;
             border: none;
-            border-radius: 6px;
+            border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 180px;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
         }
         
         .btn-generate {
-            background: #4CAF50;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
             color: white;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
         }
         
         .btn-generate:hover {
-            background: #45a049;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6);
         }
         
         .btn-download {
-            background: #2196F3;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
             color: white;
-            opacity: 0.7;
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
             transition: all 0.3s ease;
         }
         
         .btn-download:hover:not(:disabled) {
-            background: #0b7dda;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.6);
         }
         
         .btn-download:disabled {
-            opacity: 0.5;
+            opacity: 0.6;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 5px rgba(33, 150, 243, 0.2);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff30;
+            border-top: 2px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .card-wrapper {
+            perspective: 1000px;
+            margin-bottom: 30px;
         }
         .card {
-            width: 600px;
-            min-height: 370px;
+            width: 650px;
+            min-height: 400px;
             background: #fff;
-            border: 2px solid #222;
-            border-radius: 10px;
+            border: none;
+            border-radius: 20px;
             margin: 0 auto 40px auto;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             position: relative;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            overflow: visible;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.07);
+            overflow: hidden;
             padding-bottom: 40px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: cardAppear 0.6s ease-out;
         }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         .header {
-            background: #6a9ed8;
+            background: linear-gradient(135deg, #6a9ed8, #4a7db8);
             color: #fff;
-            padding: 16px 24px 10px 24px;
+            padding: 20px 30px 15px 30px;
             position: relative;
-            min-height: 80px;
+            min-height: 90px;
             display: flex;
             align-items: center;
-            gap: 18px;
+            gap: 20px;
         }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcf7f, #4ecdc4, #45b7d1);
+        }
+        
         .logo {
             position: static;
-            width: 80px;
-            height: 80px;
+            width: 85px;
+            height: 85px;
             object-fit: contain;
             background: #fff;
-            border-radius: 6px;
-            padding: 4px;
+            border-radius: 12px;
+            padding: 6px;
             flex-shrink: 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+        
         .header-text {
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
+        
         .title {
-            font-size: 26px;
-            font-weight: bold;
-            letter-spacing: 1px;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
             margin-bottom: 2px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
+        
         .subtitle {
-            color: #c00;
+            color: #ffd700;
             font-size: 22px;
-            font-weight: bold;
+            font-weight: 600;
             margin-top: 2px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
         }
+        
         .info-section {
             display: flex;
             flex-wrap: wrap;
-            padding: 16px 24px 0 24px;
+            padding: 20px 30px 0 30px;
+            gap: 25px;
         }
+        
         .avatar {
-            width: 110px;
-            height: 135px;
+            width: 120px;
+            height: 145px;
             object-fit: cover;
-            border: 2px solid #888;
-            border-radius: 6px;
-            margin-right: 28px;
-            background: #eee;
+            border: 3px solid #e0e0e0;
+            border-radius: 12px;
+            background: #f5f5f5;
             flex-shrink: 0;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
         }
+        
+        .avatar:hover {
+            transform: scale(1.05);
+        }
+        
         .details {
             flex: 1;
             font-size: 17px;
-            min-width: 220px;
+            min-width: 250px;
         }
+        
         .details b {
             font-size: 18px;
+            font-weight: 600;
         }
+        
         .label {
-            color: #1a7ec7;
-            font-weight: bold;
-        }
-        .row {
-            margin-bottom: 7px;
-            word-break: break-word;
-        }
-        .row .label {
-            width: 110px;
+            color: #2c5aa0;
+            font-weight: 600;
             display: inline-block;
+            min-width: 120px;
         }
+        
+        .row {
+            margin-bottom: 10px;
+            padding: 5px 0;
+            word-break: break-word;
+            transition: background-color 0.2s ease;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin: 5px -10px;
+        }
+        
+        .row:hover {
+            background-color: #f8f9fa;
+        }
+        
         .barcode {
-            width: 90%;
-            height: 38px;
-            margin: 14px auto 0 auto;
+            width: 85%;
+            height: 40px;
+            margin: 18px auto 0 auto;
             display: block;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        
         .footer {
-            font-size: 14px;
-            color: #444;
+            font-size: 15px;
+            color: #555;
             text-align: left;
-            padding: 0 24px 0 24px;
-            margin-top: 8px;
+            padding: 0 30px 0 30px;
+            margin-top: 15px;
+            font-weight: 500;
         }
+        
         .id-number {
             position: absolute;
-            left: 24px;
-            bottom: 18px;
-            font-size: 15px;
-            color: #222;
-            background: #fff;
-            padding: 2px 8px;
-            border-radius: 4px;
+            left: 30px;
+            bottom: 15px;
+            font-size: 14px;
+            color: #333;
+            background: rgba(255,255,255,0.9);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
+        
         .region {
             position: absolute;
-            right: 24px;
-            bottom: 18px;
-            font-size: 15px;
-            color: #222;
-            background: #fff;
-            padding: 2px 8px;
-            border-radius: 4px;
+            right: 30px;
+            bottom: 15px;
+            font-size: 14px;
+            color: #333;
+            background: rgba(255,255,255,0.9);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .main-title {
+                font-size: 2rem;
+            }
+            
+            .card {
+                width: 100%;
+                max-width: 500px;
+            }
+            
+            .btn-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 250px;
+            }
+            
+            .info-section {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            
+            .details {
+                text-align: left;
+            }
+        }
+        
+        /* Loading Animation */
+        .generating {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .generating::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            max-width: 300px;
+            font-weight: 500;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .notification.error {
+            border-left: 4px solid #f44336;
+        }
+        
+        .notification.info {
+            border-left: 4px solid #2196F3;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="controls">
-            <h1>Student Card Generator - Indian Universities</h1>
-            <button class="btn btn-generate" onclick="generateStudentCard()">Generate New Student Card</button>
-            <button class="btn btn-download" onclick="downloadCard()" disabled>Download Card</button>
+        <div class="header-section">
+            <h1 class="main-title">🎓 Student Card Generator</h1>
+            <p class="subtitle">Create professional student ID cards for Indian Universities</p>
         </div>
         
-        <div id="student-card">
-            <div class="card">
-                <div class="header">
-                    <img class="logo" id="university-logo" src="https://i.pinimg.com/736x/64/07/67/6407676eb7f221b13cf517923d0c3652.jpg" alt="University Logo">
-                    <div class="header-text">
-                        <div class="title" id="university-name">Manipal Academy of Higher Education</div>
-                        <div class="subtitle">STUDENT CARD</div>
-                    </div>
+        <div class="controls">
+            <h2>🚀 Card Generator</h2>
+            <div class="btn-container">
+                <button class="btn btn-generate" onclick="generateStudentCard()">
+                    <span class="btn-text">🎲 Generate New Card</span>
+                </button>
+                <button class="btn btn-download" onclick="downloadCard()" disabled>
+                    💾 Download Card
+                </button>
+            </div>
+        </div>
+        
+        <div class="card-wrapper">
+            <div id="student-card">
+                <div class="card">
+                    <div class="header">
+                        <img class="logo" id="university-logo" src="https://i.pinimg.com/736x/64/07/67/6407676eb7f221b13cf517923d0c3652.jpg" alt="University Logo">
+                        <div class="header-text">
+                            <div class="title" id="university-name">Manipal Academy of Higher Education</div>
+                            <div class="subtitle">STUDENT CARD</div>
+                        </div>
                 </div>
                 <div class="info-section">
                     <img class="avatar" id="student-photo" src="https://channel.mediacdn.vn/prupload/879/2018/05/img20180503174618883.jpg" alt="Student Photo">
                     <div class="details">
-                        <div class="row"><span class="label">Name:</span> <b id="student-name">Jayson Jame</b></div>
-                        <div class="row"><span class="label">Date of Birth:</span> <span id="student-dob">2003-10-10</span></div>
-                        <div class="row"><span class="label">Course:</span> <span id="student-course">2025 - 2028</span></div>
-                        <div class="row"><span class="label">Class:</span> <span id="student-class">MIT-CS-BTech-2024</span></div>
-                        <div class="row"><span class="label">Department:</span> <span id="student-department">Information Technology</span></div>
+                        <div class="row"><span class="label">👤 Name:</span> <b id="student-name">Jayson Jame</b></div>
+                        <div class="row"><span class="label">📅 Date of Birth:</span> <span id="student-dob">2003-10-10</span></div>
+                        <div class="row"><span class="label">📚 Course:</span> <span id="student-course">2025 - 2028</span></div>
+                        <div class="row"><span class="label">🎒 Class:</span> <span id="student-class">MIT-CS-BTech-2024</span></div>
+                        <div class="row"><span class="label">🏛️ Department:</span> <span id="student-department">Information Technology</span></div>
                     </div>
                 </div>
                 <div class="footer">
-                    Valid until: <b id="valid-until">30/12/2027</b>
+                    ⏰ Valid until: <b id="valid-until">30/12/2027</b>
                 </div>
                 <img class="barcode" id="barcode" src="/api/barcode?data=Manipal Academy of Higher Education&code=Code128" alt="Barcode">
-                <div class="id-number" id="student-id">Student ID: MAHE2025.0370467829</div>
-                <div class="region">India</div>
+                <div class="id-number" id="student-id">🆔 Student ID: MAHE2025.0370467829</div>
+                <div class="region">🇮🇳 India</div>
             </div>
         </div>
     </div>
+
+    <!-- Footer Section -->
+    <footer style="text-align: center; padding: 30px 20px; color: rgba(255,255,255,0.8); margin-top: 50px;">
+        <div style="max-width: 600px; margin: 0 auto;">
+            <div style="margin-bottom: 20px;">
+                <h3 style="font-size: 1.2rem; margin-bottom: 10px; color: #fff;">🎓 Student Card Generator</h3>
+                <p style="font-size: 0.95rem; line-height: 1.6;">
+                    Generate professional student ID cards for Indian Universities with realistic data and photos. 
+                    Perfect for testing, demos, or educational purposes.
+                </p>
+            </div>
+            
+            <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-bottom: 20px; font-size: 0.9rem;">
+                <div>✨ <strong>10+</strong> Universities</div>
+                <div>👥 <strong>30+</strong> Names</div>
+                <div>🏫 <strong>16</strong> Departments</div>
+                <div>🖼️ <strong>AI</strong> Generated Photos</div>
+            </div>
+            
+            <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px; font-size: 0.85rem;">
+                <p>Made with ❤️ for educational purposes • Generate responsibly</p>
+                <p style="margin-top: 10px; opacity: 0.7;">© 2025 Student Card Generator • All cards are for demonstration only</p>
+            </div>
+        </div>
+    </footer>
 
     <script>
         // Danh sách các trường đại học
@@ -380,13 +665,22 @@
         }
 
         async function generateStudentCard() {
-            // Hiển thị loading state
+            // Enhanced loading state with better UX
             const generateBtn = document.querySelector('.btn-generate');
-            const originalText = generateBtn.textContent;
-            generateBtn.textContent = 'Generating...';
+            const btnText = generateBtn.querySelector('.btn-text') || generateBtn;
+            const originalText = btnText.textContent;
+            const card = document.querySelector('.card');
+            
+            // Add loading spinner and disable button
+            btnText.innerHTML = '<span class="loading-spinner"></span>Generating...';
             generateBtn.disabled = true;
+            generateBtn.style.pointerEvents = 'none';
+            card.classList.add('generating');
 
             try {
+                // Add a small delay for better UX perception
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
                 const university = getRandomElement(universities);
                 const studentName = getRandomElement(indianNames);
                 const department = getRandomElement(departments);
@@ -396,41 +690,79 @@
                 const studentID = generateStudentID(university.shortName);
                 const validUntil = generateValidUntil();
 
-                // Lấy ảnh từ API thispersonnotexist.org (chỉ sử dụng API này)
+                // Show progress update
+                btnText.innerHTML = '<span class="loading-spinner"></span>Loading Photos...';
+                
+                // Get student photo with error handling
                 const studentPhoto = await getRandomStudentPhoto();
 
-                // Cập nhật thông tin trên card
+                // Update card information with smooth transition
+                card.style.opacity = '0.7';
+                
+                await new Promise(resolve => setTimeout(resolve, 300)); // Brief pause for transition
+                
                 document.getElementById('university-name').textContent = university.name;
                 document.getElementById('student-name').textContent = studentName;
                 document.getElementById('student-dob').textContent = dob;
                 document.getElementById('student-course').textContent = course;
                 document.getElementById('student-class').textContent = studentClass;
                 document.getElementById('student-department').textContent = department;
-                document.getElementById('student-id').textContent = `Student ID: ${studentID}`;
+                document.getElementById('student-id').innerHTML = `Student ID: ${studentID}`;
                 document.getElementById('valid-until').textContent = validUntil;
                 
-                // Load ảnh đơn giản
+                // Load images with progress feedback
+                btnText.innerHTML = '<span class="loading-spinner"></span>Loading Images...';
+                
                 document.getElementById('university-logo').src = university.logo;
                 document.getElementById('student-photo').src = studentPhoto;
                 
-                // Cập nhật barcode với tên trường qua proxy
+                // Update barcode
                 const barcodeUrl = `/api/barcode?data=${encodeURIComponent(university.name)}&code=Code128`;
                 document.getElementById('barcode').src = barcodeUrl;
                 
-                // Chờ một chút để ảnh load
+                // Restore card opacity with animation
+                card.style.opacity = '1';
+                card.style.transform = 'scale(0.95)';
+                await new Promise(resolve => setTimeout(resolve, 100));
+                card.style.transform = 'scale(1)';
+                
+                // Final delay to ensure images are loaded
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Success feedback with notification
+                btnText.innerHTML = '✅ Generated Successfully!';
+                showNotification('🎉 Student card generated successfully!', 'success', 2000);
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
             } catch (error) {
-                alert(`Lỗi: Không thể lấy ảnh từ thispersonnotexist.org\n${error.message}\n\nVui lòng kiểm tra kết nối internet và thử lại.`);
-            } finally {
-                // Restore button state
-                generateBtn.textContent = originalText;
-                generateBtn.disabled = false;
+                console.error('Generation error:', error);
+                // Enhanced error feedback with notification
+                btnText.innerHTML = '❌ Generation Failed';
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                // Enable download button after generation
-                const downloadBtn = document.querySelector('.btn-download');
-                downloadBtn.disabled = false;
-                downloadBtn.style.opacity = '1';
+                // Show user-friendly error message via notification
+                const errorMessage = error.message.includes('fetch') 
+                    ? 'Network error: Please check your internet connection and try again.' 
+                    : `Error: ${error.message}`;
+                
+                showNotification(`❌ Unable to generate student card.<br><small>${errorMessage}</small>`, 'error', 5000);
+            } finally {
+                // Restore button state with smooth transition
+                setTimeout(() => {
+                    btnText.textContent = originalText;
+                    generateBtn.disabled = false;
+                    generateBtn.style.pointerEvents = 'auto';
+                    card.classList.remove('generating');
+                    
+                    // Enable download button with animation
+                    const downloadBtn = document.querySelector('.btn-download');
+                    downloadBtn.disabled = false;
+                    downloadBtn.style.opacity = '1';
+                    downloadBtn.style.transform = 'scale(1.05)';
+                    setTimeout(() => {
+                        downloadBtn.style.transform = 'scale(1)';
+                    }, 200);
+                }, 500);
             }
         }
 
@@ -439,18 +771,36 @@
             const originalText = downloadBtn.textContent;
             
             try {
-                downloadBtn.textContent = 'Creating image...';
+                // Enhanced loading state for download
+                downloadBtn.innerHTML = '<span class="loading-spinner"></span>Creating Image...';
                 downloadBtn.disabled = true;
+                downloadBtn.style.pointerEvents = 'none';
                 
-                // Tạo canvas thủ công thay vì dùng html2canvas
+                // Add a small delay for UX
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                downloadBtn.innerHTML = '<span class="loading-spinner"></span>Processing...';
+                
+                // Create the image
                 await drawCardManually();
+                
+                // Success feedback with notification
+                downloadBtn.innerHTML = '✅ Download Complete!';
+                showNotification('💾 Card downloaded successfully!', 'success', 2000);
+                await new Promise(resolve => setTimeout(resolve, 1500));
                 
             } catch (error) {
                 console.error('Download error:', error);
-                alert('Không thể tải ảnh. Lỗi: ' + error.message);
+                downloadBtn.innerHTML = '❌ Download Failed';
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                showNotification(`❌ Unable to download card.<br><small>Error: ${error.message}</small>`, 'error', 4000);
             } finally {
-                downloadBtn.textContent = originalText;
-                downloadBtn.disabled = false;
+                // Restore button state
+                setTimeout(() => {
+                    downloadBtn.textContent = originalText;
+                    downloadBtn.disabled = false;
+                    downloadBtn.style.pointerEvents = 'auto';
+                }, 500);
             }
         }
         
@@ -739,9 +1089,41 @@
             lines.push(currentLine);
             return lines;
         }
+        
+        // Notification System
+        function showNotification(message, type = 'info', duration = 3000) {
+            // Remove existing notification if any
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = message;
+            
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Hide notification
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, duration);
+        }
 
         // Generate initial card khi trang được load
         window.onload = async function() {
+            showNotification('🚀 Welcome to Student Card Generator!<br><small>Generating your first card...</small>', 'info', 3000);
             await generateStudentCard();
         };
     </script>
