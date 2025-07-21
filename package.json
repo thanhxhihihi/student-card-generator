@@ -1,0 +1,24 @@
+{
+  "name": "student-card-generator",
+  "version": "1.0.0",
+  "description": "Student Card Generator với ảnh AI từ thispersonnotexist.org",
+  "main": "proxy-server.js",
+  "scripts": {
+    "start": "node proxy-server.js",
+    "dev": "nodemon proxy-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["student-card", "generator", "ai", "thispersonnotexist"],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
