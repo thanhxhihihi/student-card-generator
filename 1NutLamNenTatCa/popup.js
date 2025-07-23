@@ -30,12 +30,24 @@ document.addEventListener('DOMContentLoaded', function() {
         chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
           if (tabId === tab.id && info.status === 'complete') {
             chrome.tabs.onUpdated.removeListener(listener);
-            // Inject script lấy content meta[name="og-profile-acct"]
+            // Inject script lấy content meta[name="og-profile-acct"] (chờ tối đa 10s)
             chrome.scripting.executeScript({
               target: { tabId: tab.id },
               func: function () {
-                const meta = document.querySelector('meta[name="og-profile-acct"]');
-                return meta ? meta.content : '';
+                return new Promise((resolve) => {
+                  let tries = 0;
+                  function check() {
+                    const meta = document.querySelector('meta[name="og-profile-acct"]');
+                    if (meta && meta.content) {
+                      resolve(meta.content);
+                    } else if (tries++ < 50) {
+                      setTimeout(check, 200); // thử lại mỗi 200ms, tối đa 10s
+                    } else {
+                      resolve('');
+                    }
+                  }
+                  check();
+                });
               }
             }, (results) => {
               if (results && results[0] && results[0].result) {
@@ -118,7 +130,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }, (response) => {
       if (response && response.success) {
         showStatus('success', '✅ Đang mở Google One... Vui lòng hoàn tất verification!');
-        
+        // Đợi trang SheerID load hoàn toàn rồi mới điền thông tin
+        // (inject script sẽ chờ selector input[name="firstName"] xuất hiện)
         // Tự động đóng popup sau 3 giây
         setTimeout(() => {
           window.close();
