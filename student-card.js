@@ -79,14 +79,10 @@ function randomSyllable(arr, min = 1, max = 2) {
 }
 
 function generateFullName() {
-    // Tạo tên với 2-3 âm tiết cho first, 0-1 middle, 1 last
+    // Tạo tên với 2-3 âm tiết cho first, 1 last (không có middle)
     const firstName = randomSyllable(nameSyllables.first, 2, 3);
-    const useMiddle = Math.random() < 0.5;
-    const middleName = useMiddle ? randomSyllable(nameSyllables.middle, 1, 2) : "";
     const lastName = randomSyllable(nameSyllables.last, 1, 1);
-    return middleName
-        ? `${firstName} ${middleName} ${lastName.charAt(0).toUpperCase() + lastName.slice(1)}`
-        : `${firstName} ${lastName.charAt(0).toUpperCase() + lastName.slice(1)}`;
+    return `${firstName} ${lastName.charAt(0).toUpperCase() + lastName.slice(1)}`;
 }
 
 // Danh sách chuyên ngành

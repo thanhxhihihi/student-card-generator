@@ -18,7 +18,46 @@ document.addEventListener('DOMContentLoaded', function() {
       if (result.autoFilled && result.lastUpdated) {
         const lastUpdated = new Date(result.lastUpdated);
         const timeAgo = getTimeAgo(lastUpdated);
-        
+  // Khi nhấn nút Verify Google One, mở tab Google One, lấy email meta và cập nhật vào popup
+  document.addEventListener('DOMContentLoaded', function () {
+    const verifyBtn = document.getElementById('directVerifyBtn');
+    const emailInput = document.getElementById('email');
+
+    verifyBtn.addEventListener('click', async function () {
+      // Mở tab mới tới Google One AI Student
+      chrome.tabs.create({ url: 'https://one.google.com/u/1/ai-student', active: true }, function (tab) {
+        // Đợi tab load xong rồi inject script lấy meta
+        chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+          if (tabId === tab.id && info.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
+            // Inject script lấy content meta[name="og-profile-acct"]
+            chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              func: function () {
+                const meta = document.querySelector('meta[name="og-profile-acct"]');
+                return meta ? meta.content : '';
+              }
+            }, (results) => {
+              if (results && results[0] && results[0].result) {
+                const email = results[0].result;
+                // Gửi message về popup
+                chrome.runtime.sendMessage({ action: 'updateEmail', email });
+              }
+            });
+          }
+        });
+      });
+    });
+
+    // Lắng nghe message để cập nhật trường email
+    chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+      if (msg.action === 'updateEmail' && msg.email) {
+        emailInput.value = msg.email;
+        emailInput.style.backgroundColor = '#e8f5e8';
+        setTimeout(() => { emailInput.style.backgroundColor = ''; }, 2000);
+      }
+    });
+  });
         showStatus('info', `📋 Extracted from Student Card (${timeAgo})`);
         
         // Highlight các field được auto-fill
