@@ -93,10 +93,12 @@ const departments = [
     "Economics", "Psychology", "English Literature", "History", "Political Science"
 ];
 
-// Hàm lấy ảnh từ thispersonnotexist.org qua proxy server
-async function getRandomStudentPhoto() {
+// Lưu danh sách ảnh trả về từ API để chọn
+let studentPhotoList = [];
+
+// Hàm lấy ảnh từ thispersonnotexist.org qua proxy server, trả về mảng URL ảnh
+async function getStudentPhotoList() {
     try {
-        // Sử dụng proxy server local để bypass CORS
         const response = await fetch('/api/load-faces', {
             method: 'POST',
             headers: {
@@ -106,24 +108,15 @@ async function getRandomStudentPhoto() {
             body: JSON.stringify({
                 "type": "R",
                 "age": "21-35",
-                "race": "asian", 
+                "race": "asian",
                 "emotion": "none"
             })
         });
-
         if (response.ok) {
             const data = await response.json();
-            
             if (data.fc && data.fc.length > 0) {
-                // Chọn ngẫu nhiên một ảnh từ danh sách
-                const randomIndex = Math.floor(Math.random() * data.fc.length);
-                const base64Image = data.fc[randomIndex];
-                
-                // Tạo URL qua proxy server để tránh CORS khi download
-                const imageUrl = `/api/image/${base64Image}`;
-                
-                return imageUrl;
-                
+                // Trả về mảng URL ảnh
+                return data.fc.map(base64Image => `/api/image/${base64Image}`);
             } else {
                 throw new Error('Không có ảnh trong response');
             }
@@ -131,12 +124,46 @@ async function getRandomStudentPhoto() {
             const errorData = await response.json();
             throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
         }
-        
     } catch (error) {
-        throw error; // Re-throw để báo lỗi cho user
+        throw error;
     }
 }
 
+// Hiển thị danh sách thumbnail ảnh cho người dùng chọn
+function showPhotoSelection(photoList, selectedIndex = 0) {
+    let container = document.getElementById('photo-selection');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'photo-selection';
+        container.style.display = 'flex';
+        container.style.gap = '10px';
+        container.style.margin = '0 0 16px 0';
+        container.style.justifyContent = 'center';
+        container.style.flexWrap = 'wrap';
+        // Đặt container phía trên card
+        const card = document.querySelector('.card');
+        card.parentNode.insertBefore(container, card);
+    }
+    container.innerHTML = '';
+    photoList.forEach((url, idx) => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = `Photo ${idx+1}`;
+        img.style.width = '60px';
+        img.style.height = '75px';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '6px';
+        img.style.border = idx === selectedIndex ? '3px solid #1a7ec7' : '2px solid #ccc';
+        img.style.cursor = 'pointer';
+        img.title = 'Chọn ảnh này';
+        img.onclick = () => {
+            document.getElementById('student-photo').src = url;
+            showPhotoSelection(photoList, idx);
+        };
+        container.appendChild(img);
+    });
+    container.style.display = 'flex';
+}
 function getRandomElement(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
@@ -226,17 +253,21 @@ async function generateStudentCard() {
         const studentID = generateStudentID(university.shortName);
         const validUntil = generateValidUntil();
 
+
         // Show progress update
         btnText.innerHTML = '<span class="loading-spinner"></span>Loading Photos...';
-        
-        // Get student photo with error handling
-        const studentPhoto = await getRandomStudentPhoto();
+
+        // Lấy danh sách ảnh và lưu lại
+        studentPhotoList = await getStudentPhotoList();
+        if (!studentPhotoList || studentPhotoList.length === 0) throw new Error('Không có ảnh trả về');
+        // Chọn ngẫu nhiên 1 ảnh làm mặc định
+        const randomIndex = Math.floor(Math.random() * studentPhotoList.length);
+        const studentPhoto = studentPhotoList[randomIndex];
 
         // Update card information with smooth transition
         card.style.opacity = '0.7';
-        
-        await new Promise(resolve => setTimeout(resolve, 300)); // Brief pause for transition
-        
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         document.getElementById('university-name').textContent = university.name;
         document.getElementById('student-name').textContent = studentName;
         document.getElementById('student-dob').textContent = dob;
@@ -245,26 +276,29 @@ async function generateStudentCard() {
         document.getElementById('student-department').textContent = department;
         document.getElementById('student-id').innerHTML = `Student ID: ${studentID}`;
         document.getElementById('valid-until').textContent = validUntil;
-        
+
         // Load images with progress feedback
         btnText.innerHTML = '<span class="loading-spinner"></span>Loading Images...';
-        
+
         document.getElementById('university-logo').src = university.logo;
         document.getElementById('student-photo').src = studentPhoto;
-        
+
+        // Hiển thị danh sách thumbnail cho người dùng chọn
+        showPhotoSelection(studentPhotoList, randomIndex);
+
         // Update barcode
         const barcodeUrl = `/api/barcode?data=${encodeURIComponent(university.name)}&code=Code128`;
         document.getElementById('barcode').src = barcodeUrl;
-        
+
         // Restore card opacity with animation
         card.style.opacity = '1';
         card.style.transform = 'scale(0.95)';
         await new Promise(resolve => setTimeout(resolve, 100));
         card.style.transform = 'scale(1)';
-        
+
         // Final delay to ensure images are loaded
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         // Success feedback with notification
         btnText.innerHTML = '✅ Generated Successfully!';
         showNotification('🎉 Student card generated successfully!', 'success', 2000);
