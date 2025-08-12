@@ -39,6 +39,14 @@ console.table(fields);
 // Find specific fields
 console.log('\n🎯 Looking for specific fields:');
 
+// Country field
+const countryFields = fields.filter(f =>
+  f.name.toLowerCase().includes('country') ||
+  f.id.toLowerCase().includes('country') ||
+  f.placeholder.toLowerCase().includes('country')
+);
+console.log('🌍 Country fields:', countryFields);
+
 // School field
 const schoolFields = fields.filter(f => 
   f.name.toLowerCase().includes('school') ||

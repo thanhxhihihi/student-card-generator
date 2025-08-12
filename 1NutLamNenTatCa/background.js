@@ -1,5 +1,6 @@
 // Background script - xử lý logic chính
 let currentStudentInfo = {
+  country: "India", // Thêm country field
   school: "Đại học Bách khoa TP.HCM",
   firstName: "Lan",
   lastName: "Phuong", 
@@ -113,13 +114,90 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     
     // Kiểm tra xem có phải là trang verification form không
     if (tab.url.includes('/verify/')) {
-      // Đợi một chút để trang load hoàn toàn
-      setTimeout(() => {
+      console.log('🔍 Đã phát hiện trang verification form, đợi trang load hoàn toàn...');
+      
+      // Đợi trang load hoàn toàn với timeout dài hơn và kiểm tra nhiều lần
+      waitForPageFullyLoaded(tabId).then(() => {
+        console.log('✅ Trang đã load hoàn toàn, bắt đầu điền form...');
         fillSheerIDForm(tabId);
-      }, 2000);
+      }).catch(err => {
+        console.error('❌ Timeout waiting for page to load, trying anyway:', err);
+        fillSheerIDForm(tabId);
+      });
     }
   }
 });
+
+// Hàm đợi trang load hoàn toàn với kiểm tra thực tế
+async function waitForPageFullyLoaded(tabId, maxWaitTime = 10000) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    const maxAttempts = Math.floor(maxWaitTime / 500); // Check every 500ms
+    
+    const checkPageReady = () => {
+      attempts++;
+      
+      chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        func: () => {
+          // Kiểm tra các điều kiện để xác định trang đã load xong
+          const checks = {
+            documentReady: document.readyState === 'complete',
+            hasFormElements: document.querySelectorAll('input, select, textarea').length > 0,
+            noLoadingIndicators: document.querySelectorAll('[class*="loading"], [class*="spinner"], [id*="loading"]').length === 0,
+            hasSheerIDForm: document.querySelectorAll('[name*="school"], [name*="firstName"], [name*="lastName"]').length >= 2,
+            jQueryReady: typeof window.jQuery !== 'undefined' ? window.jQuery.isReady : true
+          };
+          
+          console.log('🔍 Page readiness checks:', checks);
+          
+          // Trang được coi là ready nếu:
+          // 1. Document ready
+          // 2. Có form elements 
+          // 3. Không có loading indicators
+          const isReady = checks.documentReady && checks.hasFormElements && checks.noLoadingIndicators;
+          
+          return {
+            ready: isReady,
+            checks: checks,
+            url: window.location.href,
+            timestamp: new Date().toISOString()
+          };
+        }
+      }).then(results => {
+        if (results && results[0] && results[0].result) {
+          const result = results[0].result;
+          console.log(`🔍 Page readiness check ${attempts}/${maxAttempts}:`, result);
+          
+          if (result.ready) {
+            console.log('✅ Trang đã sẵn sàng để điền form');
+            resolve();
+            return;
+          }
+        }
+        
+        if (attempts >= maxAttempts) {
+          console.log('⏰ Timeout waiting for page readiness, proceeding anyway');
+          reject(new Error('Timeout waiting for page to be ready'));
+          return;
+        }
+        
+        // Check lại sau 500ms
+        setTimeout(checkPageReady, 500);
+      }).catch(err => {
+        console.error('❌ Error checking page readiness:', err);
+        if (attempts >= maxAttempts) {
+          reject(err);
+        } else {
+          setTimeout(checkPageReady, 500);
+        }
+      });
+    };
+    
+    // Bắt đầu check
+    checkPageReady();
+  });
+}
 
 // Lắng nghe tab mới được tạo (cho sign-in)
 chrome.tabs.onCreated.addListener((tab) => {
@@ -244,25 +322,313 @@ function handlePostSubmit(tabId) {
   });
 }
 
-// Điền form SheerID
+// Điền form SheerID với cải thiện timing và retry logic
 function fillSheerIDForm(tabId) {
   chrome.scripting.executeScript({
     target: { tabId: tabId },
     func: (studentInfo) => {
-      console.log('Bắt đầu điền form SheerID với thông tin:', studentInfo);
+      console.log('🔍 DEBUG: Bắt đầu điền form SheerID với thông tin:', JSON.stringify(studentInfo, null, 2));
       
-      // Thông tin từ popup
-      // studentInfo đã được truyền vào hàm
+      // Validation đầu vào
+      if (!studentInfo) {
+        console.error('❌ ERROR: studentInfo is null or undefined!');
+        return;
+      }
       
-      // Hàm helper để điền field
-      function fillField(selector, value) {
+      // Log từng field để debug
+      console.log('🔍 DEBUG: Field values check:', {
+        country: studentInfo.country,
+        school: studentInfo.school,
+        firstName: studentInfo.firstName,
+        lastName: studentInfo.lastName,
+        email: studentInfo.email,
+        dateOfBirth: studentInfo.dateOfBirth
+      });
+      
+      // Hàm đợi element xuất hiện với timeout
+      function waitForElement(selector, timeout = 10000) {
+        return new Promise((resolve, reject) => {
+          const element = document.querySelector(selector);
+          if (element) {
+            console.log(`✅ Element đã sẵn sàng: ${selector}`);
+            resolve(element);
+            return;
+          }
+          
+          const observer = new MutationObserver((mutations, obs) => {
+            const element = document.querySelector(selector);
+            if (element) {
+              console.log(`✅ Element đã xuất hiện sau mutation: ${selector}`);
+              obs.disconnect();
+              resolve(element);
+            }
+          });
+          
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+          
+          setTimeout(() => {
+            observer.disconnect();
+            reject(new Error(`Timeout waiting for element: ${selector}`));
+          }, timeout);
+        });
+      }
+      
+      // Hàm đợi và điền form với retry logic cải tiến
+      async function fillFormWithRetry() {
+        const maxAttempts = 2; // Giảm từ 3 xuống 2 để ít loằng ngoằng hơn
+        let attempt = 1;
+        
+        while (attempt <= maxAttempts) {
+          try {
+            console.log(`🔄 Attempt ${attempt}/${maxAttempts} to fill form...`);
+            
+            // Đợi các elements chính xuất hiện trước
+            const mainSelectors = [
+              'input[name*="school"], select[name*="school"]',
+              'input[name*="firstName"], input[name*="first"]', 
+              'input[name*="lastName"], input[name*="last"]',
+              'input[name*="email"]'
+            ];
+            
+            console.log('🔍 Đang đợi main form elements xuất hiện...');
+            
+            // Kiểm tra xem có ít nhất 2 trong 4 elements chính
+            let foundElements = 0;
+            for (const selector of mainSelectors) {
+              try {
+                await waitForElement(selector, 3000);
+                foundElements++;
+              } catch (e) {
+                console.log(`⚠️ Element not found: ${selector}`);
+              }
+            }
+            
+            if (foundElements < 2) {
+              throw new Error(`Only found ${foundElements}/4 main form elements`);
+            }
+            
+            console.log(`✅ Found ${foundElements}/4 main form elements, proceeding with form fill...`);
+            
+            // Bắt đầu điền form theo thứ tự - không throw error nếu một field fail
+            await fillFormFieldsWithContinue();
+            
+            console.log('✅ Form điền thành công!');
+            break;
+            
+          } catch (error) {
+            console.error(`❌ Attempt ${attempt} failed:`, error);
+            
+            if (attempt === maxAttempts) {
+              console.error('❌ All attempts failed, but continuing anyway...');
+              // Vẫn cố gắng điền form dù có lỗi
+              try {
+                await fillFormFieldsWithContinue();
+              } catch (e) {
+                console.error('❌ Final attempt also failed:', e);
+              }
+              return;
+            }
+            
+            attempt++;
+            console.log(`🔄 Waiting 1 second before retry...`); // Giảm từ 2s xuống 1s
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      // Main function to fill all form fields - cải tiến để continue khi một field fail
+      async function fillFormFieldsWithContinue() {
+        console.log('📝 Bắt đầu điền form theo thứ tự...');
+        
+        // 1. Điền Country trước tiên (nếu có)
+        if (studentInfo.country) {
+          try {
+            console.log('🌍 Bước 1: Điền Country...');
+            await fillCountryField(studentInfo.country);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('✅ Country điền thành công');
+          } catch (error) {
+            console.error('❌ Country failed, continuing...', error);
+          }
+        }
+        
+        // 2. Điền First Name
+        if (studentInfo.firstName) {
+          try {
+            console.log('👤 Bước 2: Điền First Name...');
+            await fillField('input[name*="firstName"], input[name*="first"]', studentInfo.firstName, 'First Name');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            console.log('✅ First Name điền thành công');
+          } catch (error) {
+            console.error('❌ First Name failed, continuing...', error);
+          }
+        }
+        
+        // 3. Điền Last Name
+        if (studentInfo.lastName) {
+          try {
+            console.log('👤 Bước 3: Điền Last Name...');
+            await fillField('input[name*="lastName"], input[name*="last"]', studentInfo.lastName, 'Last Name');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            console.log('✅ Last Name điền thành công');
+          } catch (error) {
+            console.error('❌ Last Name failed, continuing...', error);
+          }
+        }
+        
+        // 4. Điền Email
+        if (studentInfo.email) {
+          try {
+            console.log('📧 Bước 4: Điền Email...');
+            await fillField('input[name*="email"], input[type="email"]', studentInfo.email, 'Email');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            console.log('✅ Email điền thành công');
+          } catch (error) {
+            console.error('❌ Email failed, continuing...', error);
+          }
+        }
+        
+        // 5. Điền Date of Birth (nếu có)
+        if (studentInfo.dateOfBirth) {
+          try {
+            console.log('📅 Bước 5: Điền Date of Birth...');
+            await fillDateOfBirth(studentInfo.dateOfBirth);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('✅ Date of Birth điền thành công');
+          } catch (error) {
+            console.error('❌ Date of Birth failed, continuing...', error);
+          }
+        }
+        
+        // 6. Điền School cuối cùng
+        if (studentInfo.school) {
+          try {
+            console.log('🏫 Bước 6: Điền School (cuối cùng)...');
+            await fillSchoolField(studentInfo.school);
+            await new Promise(resolve => setTimeout(resolve, 300));
+            console.log('✅ School điền thành công');
+          } catch (error) {
+            console.error('❌ School failed, but continuing to submit...', error);
+          }
+        }
+        
+        console.log('📝 Hoàn thành điền form, chuẩn bị submit...');
+        
+        // 7. Submit form
+        setTimeout(() => {
+          submitForm();
+        }, 1000);
+      }
+
+      // Backup function - giữ nguyên cho compatibility  
+      async function fillFormFields() {
+        return fillFormFieldsWithContinue();
+      }
+      
+      // Start the process
+      fillFormWithRetry();
+      
+      // Hàm helper để điền field với advanced validation (cải tiến)
+      function fillField(selector, value, fieldType = 'text') {
+        if (!value) {
+          console.log(`⚠️ WARNING: Không có giá trị để điền cho ${fieldType}: "${selector}"`);
+          return false;
+        }
+        
         const field = document.querySelector(selector);
         if (field) {
-          field.value = value;
+          console.log(`🎯 Điền ${fieldType}: ${selector} = "${value}"`);
+          console.log(`🎯 Field details:`, {
+            id: field.id,
+            name: field.name,
+            type: field.type,
+            placeholder: field.placeholder,
+            visible: field.offsetParent !== null,
+            disabled: field.disabled,
+            readonly: field.readOnly
+          });
+          
+          // Check if field is actually visible and editable
+          if (field.offsetParent === null) {
+            console.log(`⚠️ WARNING: Field ${selector} is not visible`);
+            return false;
+          }
+          
+          if (field.disabled || field.readOnly) {
+            console.log(`⚠️ WARNING: Field ${selector} is disabled or readonly`);
+            return false;
+          }
+          
+          // Step 1: Focus and activate field
+          field.focus();
+          field.click();
+          
+          // Step 2: Clear completely 
+          field.value = '';
           field.dispatchEvent(new Event('input', { bubbles: true }));
           field.dispatchEvent(new Event('change', { bubbles: true }));
-          console.log(`Đã điền ${selector}: ${value}`);
+          
+          // Step 3: Set value using multiple methods for compatibility
+          field.value = value;
+          
+          // For React/modern frameworks - set property directly
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          if (nativeInputValueSetter) {
+            nativeInputValueSetter.call(field, value);
+          }
+          
+          // Step 4: Trigger all validation events
+          const events = [
+            'input',
+            'change', 
+            'keydown',
+            'keyup',
+            'blur',
+            'focusout'
+          ];
+          
+          events.forEach(eventType => {
+            field.dispatchEvent(new Event(eventType, { bubbles: true }));
+          });
+          
+          // Step 5: Special keyboard simulation for SheerID
+          const keyboardEvent = new KeyboardEvent('keyup', {
+            bubbles: true,
+            cancelable: true,
+            key: value.slice(-1), // Last character
+            code: `Key${value.slice(-1).toUpperCase()}`,
+            keyCode: value.slice(-1).charCodeAt(0)
+          });
+          field.dispatchEvent(keyboardEvent);
+          
+          // Step 6: Force validation check
+          setTimeout(() => {
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field.dispatchEvent(new Event('blur', { bubbles: true }));
+          }, 50);
+          
+          // Step 7: Verify value was set correctly
+          setTimeout(() => {
+            if (field.value === value) {
+              console.log(`✅ VERIFIED: ${fieldType} = "${value}" hiển thị chính xác trong UI`);
+            } else {
+              console.log(`⚠️ WARNING: ${fieldType} value trong DOM = "${field.value}" khác với expected = "${value}"`);
+              
+              // Try to force set value again
+              field.value = value;
+              field.dispatchEvent(new Event('input', { bubbles: true }));
+              field.dispatchEvent(new Event('change', { bubbles: true }));
+              console.log(`🔄 RETRY: Đã thử set lại ${fieldType} value = "${value}"`);
+            }
+          }, 100);
+          
+          console.log(`✅ Đã điền ${selector}: ${value}`);
           return true;
+        } else {
+          console.log(`❌ Không tìm thấy field với selector: ${selector}`);
         }
         return false;
       }
@@ -536,8 +902,169 @@ function fillSheerIDForm(tabId) {
         return false;
       }
       
-      // Hàm đặc biệt để xử lý trường học với dropdown
+      // Hàm đặc biệt để xử lý country field với dropdown
+      async function fillCountryField(countryName = "Vietnam") {
+        const countrySelectors = [
+          'select[name*="country"]',
+          'select[id*="country"]', 
+          'input[name*="country"]',
+          'input[id*="country"]',
+          'input[placeholder*="country"]',
+          'input[placeholder*="Country"]',
+          'input[aria-label*="country"]',
+          '#country',
+          '#sid-country',
+          '[name="sid-country"]',
+          '[role="combobox"][placeholder*="country"]'
+        ];
+        
+        let countryField = null;
+        for (const selector of countrySelectors) {
+          countryField = document.querySelector(selector);
+          if (countryField) {
+            console.log(`Tìm thấy country field với selector: ${selector}`);
+            break;
+          }
+        }
+        
+        if (!countryField) {
+          console.log('Không tìm thấy field country');
+          return false;
+        }
+        
+          // Nếu là select dropdown thông thường
+          if (countryField.tagName === 'SELECT') {
+            // Tìm option có text chứa country name
+            const options = countryField.querySelectorAll('option');
+            let targetOption = null;
+            
+            for (const option of options) {
+              const optionText = option.textContent.toLowerCase();
+              const countryLower = countryName.toLowerCase();
+              
+              // Check exact match or contains
+              if (optionText.includes(countryLower) ||
+                  optionText.includes('vietnam') && countryLower.includes('vietnam') ||
+                  optionText.includes('united states') && countryLower.includes('united states') ||
+                  optionText.includes('usa') && countryLower.includes('united states') ||
+                  optionText.includes('us') && countryLower.includes('united states') ||
+                  option.value.toLowerCase().includes(countryLower)) {
+                targetOption = option;
+                break;
+              }
+            }
+            
+            if (targetOption) {
+              countryField.value = targetOption.value;
+              countryField.dispatchEvent(new Event('change', { bubbles: true }));
+              console.log(`✅ Đã chọn country: ${targetOption.textContent}`);
+              return true;
+            }
+          }        // Nếu là input với dropdown autocomplete
+        if (countryField.tagName === 'INPUT') {
+          // Click và focus
+          countryField.click();
+          countryField.focus();
+          
+          // Điền tên country
+          countryField.value = countryName;
+          
+          console.log(`Đã điền country value: "${countryName}"`);
+          
+          // Trigger events
+          const events = ['focus', 'input', 'keydown', 'keyup', 'change'];
+          events.forEach(eventType => {
+            countryField.dispatchEvent(new Event(eventType, { bubbles: true }));
+          });
+          
+          // Đợi và tìm dropdown item cho country
+          return new Promise((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 15;
+            
+            const checkForCountryDropdown = () => {
+              attempts++;
+              
+              // Tìm country dropdown item
+              const countryItemSelectors = [
+                '[role="option"]',
+                '.dropdown-item',
+                '.autocomplete-item',
+                '.list-item',
+                '.suggestion',
+                '.option',
+                '[class*="country-item"]',
+                '[id*="country-item"]'
+              ];
+              
+              let targetItem = null;
+              for (const selector of countryItemSelectors) {
+                const items = document.querySelectorAll(selector);
+                for (const item of items) {
+                  if (item.offsetParent !== null) {
+                    const itemText = item.textContent.toLowerCase();
+                    const countryLower = countryName.toLowerCase();
+                    
+                    // Check if this item matches our target country
+                    if (itemText.includes(countryLower) ||
+                        (itemText.includes('vietnam') || itemText.includes('viet nam')) && countryLower.includes('vietnam') ||
+                        (itemText.includes('united states') || itemText.includes('usa') || itemText.includes('america')) && countryLower.includes('united states')) {
+                      targetItem = item;
+                      console.log(`Tìm thấy ${countryName} item với selector: ${selector}`);
+                      break;
+                    }
+                  }
+                }
+                if (targetItem) break;
+              }
+              
+              if (targetItem && targetItem.offsetParent !== null) {
+                // Hover và click
+                targetItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+                
+                setTimeout(() => {
+                  targetItem.click();
+                  console.log(`✅ Đã click vào ${countryName} item`);
+                  resolve(true);
+                }, 100);
+                
+                return;
+              }
+              
+              // Debug country dropdown items
+              if (attempts === 5) {
+                console.log('Debug: Tìm tất cả country dropdown items:');
+                const allCountryItems = document.querySelectorAll('[role="option"], .dropdown-item, [class*="item"]');
+                allCountryItems.forEach((item, index) => {
+                  if (item.offsetParent !== null) {
+                    console.log(`Country item ${index}:`, {
+                      text: item.textContent?.substring(0, 50),
+                      classes: item.className,
+                      id: item.id
+                    });
+                  }
+                });
+              }
+              
+              if (attempts < maxAttempts) {
+                setTimeout(checkForCountryDropdown, 200);
+              } else {
+                console.log('Timeout - không tìm thấy country dropdown');
+                resolve(false);
+              }
+            };
+            
+            setTimeout(checkForCountryDropdown, 300);
+          });
+        }
+        
+        return false;
+      }
+
+      // Hàm đặc biệt để xử lý trường học với dropdown (cải tiến timing)
       async function fillSchoolField(schoolName) {
+        console.log(`🏫 Bắt đầu xử lý school field với tên: "${schoolName}"`);
+        
         const schoolSelectors = [
           'input[id*="college"]',
           'input[name="school"]',
@@ -554,151 +1081,205 @@ function fillSheerIDForm(tabId) {
         for (const selector of schoolSelectors) {
           schoolField = document.querySelector(selector);
           if (schoolField) {
-            console.log(`Tìm thấy trường học field với selector: ${selector}`);
+            console.log(`🎯 Tìm thấy school field với selector: ${selector}`);
             break;
           }
         }
         
         if (!schoolField) {
-          console.log('Không tìm thấy field trường học');
+          console.log('❌ Không tìm thấy field trường học');
           return false;
         }
         
-        // Bước 1: Click vào field để focus và mở dropdown
-        schoolField.click();
+        // Bước 1: Clear field và focus
+        console.log('📝 Bước 1: Clear và focus vào school field');
+        schoolField.value = '';
         schoolField.focus();
-        console.log('Đã click vào field trường học');
+        schoolField.click();
         
-        // Bước 2: Điền tên trường
-        schoolField.value = schoolName;
+        // Đợi một chút để UI sẵn sàng
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        // Trigger các event để kích hoạt dropdown
-        const events = ['focus', 'input', 'keydown', 'keyup', 'change'];
-        events.forEach(eventType => {
-          schoolField.dispatchEvent(new Event(eventType, { bubbles: true }));
-        });
+        // Bước 2: Điền tên trường từng ký tự để trigger autocomplete tốt hơn
+        console.log('⌨️ Bước 2: Điền tên trường từng ký tự');
+        for (let i = 0; i < schoolName.length; i++) {
+          schoolField.value = schoolName.substring(0, i + 1);
+          
+          // Trigger events cho từng ký tự
+          schoolField.dispatchEvent(new Event('input', { bubbles: true }));
+          schoolField.dispatchEvent(new KeyboardEvent('keydown', {
+            key: schoolName[i],
+            bubbles: true
+          }));
+          
+          // Đợi một chút giữa các ký tự để autocomplete có thời gian phản hồi
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
         
-        // Thêm keyboard event để trigger autocomplete
+        // Trigger final events
+        schoolField.dispatchEvent(new Event('input', { bubbles: true }));
+        schoolField.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        // Thêm keyboard event để trigger autocomplete dropdown
         schoolField.dispatchEvent(new KeyboardEvent('keydown', {
           key: 'ArrowDown',
           code: 'ArrowDown',
           bubbles: true
         }));
         
-        console.log(`Đã điền tên trường: ${schoolName}`);
+        console.log(`✅ Đã điền đầy đủ tên trường: "${schoolName}"`);
         
-        // Bước 3: Đợi dropdown hiện ra và chọn item đầu tiên
+        // Bước 3: Đợi dropdown hiện ra hoàn toàn với logic cải tiến
+        console.log('⏰ Bước 3: Đợi dropdown load hoàn toàn...');
+        
         return new Promise((resolve) => {
           let attempts = 0;
-          const maxAttempts = 20; // Đợi tối đa 4 giây
+          const maxAttempts = 30; // Tăng từ 20 lên 30 (6 giây)
+          let foundItemsCount = 0;
+          let stableCount = 0; // Đếm số lần dropdown stable
           
           const checkForDropdown = () => {
             attempts++;
             
-            // Tìm item đầu tiên trong dropdown
-            const firstItemSelectors = [
+            // Tìm tất cả items trong dropdown
+            const allItemSelectors = [
               '.sid-college-name-item-0',
               '[id*="college-name-item-0"]',
-              '[class*="college-name-item"]:first-child',
+              '[class*="college-name-item"]',
               '[class*="college-name-item"][data-index="0"]',
-              '[role="option"]:first-child',
-              '.dropdown-item:first-child',
-              '.autocomplete-item:first-child',
-              'li[data-index="0"]',
-              'div[data-index="0"]',
-              '.list-item:first-child',
-              '.suggestion:first-child',
-              '.option:first-child'
+              '[role="option"]',
+              '.dropdown-item',
+              '.autocomplete-item',
+              'li[data-index]',
+              'div[data-index]',
+              '.list-item',
+              '.suggestion',
+              '.option'
             ];
             
+            // Đếm tất cả items visible trong dropdown
+            let totalItems = 0;
             let firstItem = null;
-            for (const selector of firstItemSelectors) {
-              // Tìm trong document chính
-              firstItem = document.querySelector(selector);
-              
-              // Nếu không tìm thấy, thử tìm trong tất cả iframe
-              if (!firstItem) {
-                const iframes = document.querySelectorAll('iframe');
-                for (const iframe of iframes) {
-                  try {
-                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                    firstItem = iframeDoc.querySelector(selector);
-                    if (firstItem) break;
-                  } catch (e) {
-                    // Ignore cross-origin iframe errors
+            
+            for (const selector of allItemSelectors) {
+              const items = document.querySelectorAll(selector);
+              for (const item of items) {
+                if (item.offsetParent !== null && item.textContent.trim()) {
+                  totalItems++;
+                  if (!firstItem) {
+                    firstItem = item;
                   }
                 }
               }
+            }
+            
+            console.log(`🔍 Attempt ${attempts}/${maxAttempts}: Found ${totalItems} dropdown items`);
+            
+            // Kiểm tra dropdown đã stable chưa
+            if (totalItems > 0) {
+              if (totalItems === foundItemsCount) {
+                stableCount++;
+              } else {
+                stableCount = 0; // Reset nếu số lượng items thay đổi
+                foundItemsCount = totalItems;
+              }
               
-              if (firstItem && firstItem.offsetParent !== null) { // Kiểm tra element có visible không
-                console.log(`Tìm thấy item đầu tiên với selector: ${selector}`);
-                break;
+              // Nếu dropdown đã stable trong ít nhất 3 lần check (600ms) và có ít nhất 1 item
+              if (stableCount >= 3 && totalItems >= 1 && firstItem) {
+                console.log(`✅ Dropdown đã stable với ${totalItems} items, chọn item đầu tiên`);
+                
+                // Debug thông tin của item đầu tiên
+                console.log('🎯 Item đầu tiên:', {
+                  text: firstItem.textContent.trim(),
+                  classes: firstItem.className,
+                  id: firstItem.id,
+                  visible: firstItem.offsetParent !== null
+                });
+                
+                // Hover vào item để highlight
+                firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+                firstItem.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+                
+                // Đợi 500ms để đảm bảo dropdown hoàn toàn sẵn sàng trước khi click
+                setTimeout(() => {
+                  console.log('🖱️ Click vào item đầu tiên...');
+                  firstItem.click();
+                  firstItem.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                  
+                  // Verify click thành công
+                  setTimeout(() => {
+                    if (schoolField.value && schoolField.value.toLowerCase().includes(schoolName.toLowerCase().substring(0, 5))) {
+                      console.log('✅ School field đã được điền thành công:', schoolField.value);
+                    } else {
+                      console.log('⚠️ School field có thể chưa được điền đúng:', schoolField.value);
+                    }
+                  }, 200);
+                  
+                  resolve(true);
+                }, 500);
+                
+                return;
               }
             }
             
-            if (firstItem && firstItem.offsetParent !== null) {
-              // Debug thông tin của item
-              console.log('Item được tìm thấy:', {
-                text: firstItem.textContent,
-                classes: firstItem.className,
-                id: firstItem.id,
-                visible: firstItem.offsetParent !== null
-              });
-              
-              // Hover vào item để hiện ra
-              firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-              firstItem.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-              
-              // Đợi một chút rồi click
-              setTimeout(() => {
-                firstItem.click();
-                firstItem.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                console.log('Đã click vào item đầu tiên trong dropdown');
-                resolve(true);
-              }, 200);
-              
-              return;
-            }
-            
-            // Debug: In ra tất cả element có class chứa "college" hoặc "item"
-            if (attempts === 5) { // Debug ở lần thử thứ 5
-              console.log('Debug: Tìm tất cả element có thể là dropdown item:');
+            // Debug dropdown state mỗi 10 attempts
+            if (attempts % 10 === 0) {
+              console.log('🔍 Debug dropdown state:');
               const allPossibleItems = document.querySelectorAll('[class*="college"], [class*="item"], [role="option"], .dropdown *, .autocomplete *');
+              let visibleCount = 0;
               allPossibleItems.forEach((item, index) => {
-                if (item.offsetParent !== null) { // Chỉ log những element visible
-                  console.log(`Item ${index}:`, {
-                    text: item.textContent?.substring(0, 50),
-                    classes: item.className,
-                    id: item.id,
-                    tagName: item.tagName
-                  });
+                if (item.offsetParent !== null && item.textContent.trim()) {
+                  visibleCount++;
+                  if (visibleCount <= 5) { // Chỉ log 5 items đầu tiên để tránh spam
+                    console.log(`  Item ${visibleCount}:`, {
+                      text: item.textContent.substring(0, 50),
+                      classes: item.className,
+                      selector: item.tagName + (item.id ? '#' + item.id : '') + (item.className ? '.' + item.className.split(' ')[0] : '')
+                    });
+                  }
                 }
               });
+              console.log(`📊 Total visible items: ${visibleCount}`);
             }
             
-            // Nếu chưa tìm thấy và chưa hết attempts thì tiếp tục
+            // Tiếp tục check nếu chưa hết attempts
             if (attempts < maxAttempts) {
               setTimeout(checkForDropdown, 200);
             } else {
-              console.log('Timeout - không tìm thấy dropdown sau', maxAttempts * 200, 'ms');
-              resolve(false);
+              console.log('⏰ Timeout - không tìm thấy dropdown ổn định sau', maxAttempts * 200, 'ms');
+              console.log('🔄 Thử click vào field một lần nữa...');
+              
+              // Last attempt: thử click lại và tìm bất kỳ item nào
+              schoolField.click();
+              setTimeout(() => {
+                const anyItem = document.querySelector('[role="option"], .dropdown-item, .autocomplete-item, .list-item');
+                if (anyItem && anyItem.offsetParent !== null) {
+                  console.log('🎯 Found fallback item, clicking...');
+                  anyItem.click();
+                  resolve(true);
+                } else {
+                  console.log('❌ No items found even after fallback');
+                  resolve(false);
+                }
+              }, 500);
             }
           };
           
-          // Bắt đầu check sau 300ms
-          setTimeout(checkForDropdown, 300);
+          // Bắt đầu check sau 500ms để dropdown có thời gian xuất hiện
+          setTimeout(checkForDropdown, 500);
         });
       }
       
       // Thử các selector khác nhau cho các field khác
       const fieldSelectors = {
         firstName: [
-          '#sid-first-name',
+          '#sid-first-name', // SheerID specific
           'input[name="sid-first-name"]',
           'input[autocomplete="given-name"]',
           'input[name="firstName"]',
           'input[name="first_name"]',
           'input[name="first-name"]',
+          'input[name="fname"]',
           'input[id*="first"]',
           'input[id*="fname"]',
           'input[id*="given"]',
@@ -709,10 +1290,15 @@ function fillSheerIDForm(tabId) {
           'input[aria-label*="first"]',
           'input[aria-label*="First"]',
           'input[data-name*="first"]',
+          'input[class*="first"]',
+          'input[class*="fname"]',
           '#firstName',
           '#first_name',
           '#fname',
-          '#given-name'
+          '#given-name',
+          // Fallback: any input after school that might be first name
+          'form input[type="text"]:nth-of-type(2)',
+          'form input:not([type]):nth-of-type(2)'
         ],
         lastName: [
           '#sid-last-name',
@@ -735,9 +1321,20 @@ function fillSheerIDForm(tabId) {
           '#email'
         ]
       };
+
       
-      // Điền trường học trước (async)
-      fillSchoolField(studentInfo.school).then((success) => {
+      
+      // Điền country trước, sau đó mới điền school (async chain)
+      fillCountryField(studentInfo.country || "Vietnam").then((countrySuccess) => {
+        if (countrySuccess) {
+          console.log('✅ Đã điền và chọn country thành công');
+        } else {
+          console.log('⚠️ Không tìm thấy field country hoặc lỗi khi điền');
+        }
+        
+        // Sau khi điền xong country, điền trường học
+        return fillSchoolField(studentInfo.school);
+      }).then((success) => {
         if (success) {
           console.log('Đã điền và chọn trường học thành công');
         } else {
@@ -745,223 +1342,164 @@ function fillSheerIDForm(tabId) {
           fillField('input[id*="college"]', studentInfo.school);
         }
         
-        // Sau đó điền các field khác
+        // Sau đó điền các field khác với delay để validation có thời gian xử lý
         console.log('🔍 Bắt đầu điền các field name và email...');
         
-        // Debug: In ra tất cả input fields trên trang
-        const allInputs = document.querySelectorAll('input');
-        console.log('🔍 DEBUG: Tất cả input fields trên trang:');
-        allInputs.forEach((input, index) => {
-          console.log(`Input ${index}:`, {
-            id: input.id,
-            name: input.name,
-            type: input.type,
-            autocomplete: input.autocomplete,
-            placeholder: input.placeholder,
-            className: input.className,
-            ariaLabel: input.getAttribute('aria-label'),
-            visible: input.offsetParent !== null
-          });
-        });
-        
-        // Debug đặc biệt cho First Name
-        console.log('🔍 FIRST NAME DEBUG: Tìm tất cả field có thể là First Name:');
-        const potentialFirstNameFields = Array.from(allInputs).filter(input => {
-          const searchText = (
-            (input.id || '') + ' ' +
-            (input.name || '') + ' ' +
-            (input.placeholder || '') + ' ' +
-            (input.className || '') + ' ' +
-            (input.getAttribute('aria-label') || '') + ' ' +
-            (input.autocomplete || '')
-          ).toLowerCase();
+        // Điền từng field một cách tuần tự với delay
+        const fillFieldsSequentially = async () => {
+          const fieldOrder = ['firstName', 'lastName', 'email'];
           
-          return searchText.includes('first') || 
-                 searchText.includes('given') || 
-                 searchText.includes('fname') ||
-                 input.autocomplete === 'given-name';
-        });
-        
-        console.log('🎯 Potential First Name fields found:', potentialFirstNameFields.length);
-        potentialFirstNameFields.forEach((input, index) => {
-          console.log(`First Name Candidate ${index}:`, {
-            element: input,
-            RECOMMENDED_SELECTOR: input.id ? `#${input.id}` : 
-                                  input.name ? `input[name="${input.name}"]` :
-                                  input.autocomplete ? `input[autocomplete="${input.autocomplete}"]` :
-                                  `input[placeholder="${input.placeholder}"]`,
-            id: input.id,
-            name: input.name,
-            placeholder: input.placeholder,
-            autocomplete: input.autocomplete,
-            visible: input.offsetParent !== null
-          });
-        });
-        
-        Object.keys(fieldSelectors).forEach(fieldName => {
-          const selectors = fieldSelectors[fieldName];
-          const value = studentInfo[fieldName];
-          
-          console.log(`🔍 Đang tìm field ${fieldName} với value: ${value}`);
-          console.log(`🔍 Selectors để thử:`, selectors);
-          
-          let fieldFound = false;
-          for (let i = 0; i < selectors.length; i++) {
-            const selector = selectors[i];
-            console.log(`🔍 Thử selector ${i + 1}/${selectors.length}: ${selector}`);
+          for (const fieldName of fieldOrder) {
+            const selectors = fieldSelectors[fieldName];
+            const value = studentInfo[fieldName];
             
-            const field = document.querySelector(selector);
-            if (field) {
-              console.log(`✅ Tìm thấy field với selector: ${selector}`, field);
-              
-              // Kiểm tra field có visible không
-              if (field.offsetParent !== null) {
-                // Focus trước khi điền
-                field.focus();
-                
-                // Clear existing value
-                field.value = '';
-                
-                // Set new value
-                field.value = value;
-                
-                // Trigger comprehensive events for modern frameworks
-                const events = [
-                  new Event('focus', { bubbles: true }),
-                  new Event('input', { bubbles: true, cancelable: true }),
-                  new Event('keydown', { bubbles: true }),
-                  new Event('keyup', { bubbles: true }),
-                  new Event('change', { bubbles: true }),
-                  new Event('blur', { bubbles: true })
-                ];
-                
-                events.forEach(event => field.dispatchEvent(event));
-                
-                // For React/Vue: trigger input event with target value
-                const inputEvent = new Event('input', { bubbles: true });
-                Object.defineProperty(inputEvent, 'target', {
-                  writable: false,
-                  value: field
-                });
-                field.dispatchEvent(inputEvent);
-                
-                // Verify value was set
-                setTimeout(() => {
-                  if (field.value === value) {
-                    console.log(`✅ VERIFIED: ${fieldName} = "${value}" hiển thị chính xác trong UI`);
-                  } else {
-                    console.log(`⚠️ WARNING: ${fieldName} value trong DOM = "${field.value}" khác với expected = "${value}"`);
-                  }
-                }, 200);
-                
-                console.log(`✅ Đã điền ${fieldName} = "${value}" bằng selector: ${selector}`);
-                fieldFound = true;
-                break;
-              } else {
-                console.log(`⚠️ Field tìm thấy nhưng không visible: ${selector}`);
-              }
-            } else {
-              console.log(`❌ Không tìm thấy field với selector: ${selector}`);
-            }
-          }
-          
-          if (!fieldFound) {
-            console.log(`❌ KHÔNG TÌM THẤY field ${fieldName} với tất cả selectors:`, selectors);
+            if (!value) continue;
             
-            // FALLBACK: Thử tìm bằng position/order cho First Name
-            if (fieldName === 'firstName') {
-              console.log('🔄 FALLBACK: Thử tìm First Name bằng vị trí...');
-              
-              // Tìm tất cả input text fields visible
-              const textInputs = Array.from(document.querySelectorAll('input[type="text"], input:not([type])')).filter(inp => inp.offsetParent !== null);
-              
-              // Thử các heuristics khác nhau
-              let fallbackField = null;
-              
-              // 1. Tìm input đầu tiên sau School field
-              const schoolField = document.querySelector('input[id*="college"], input[name*="school"], [role="combobox"]');
-              if (schoolField) {
-                const schoolIndex = textInputs.indexOf(schoolField);
-                if (schoolIndex >= 0 && schoolIndex < textInputs.length - 1) {
-                  fallbackField = textInputs[schoolIndex + 1];
-                  console.log('🎯 Found First Name sau School field:', fallbackField);
+            console.log(`🔍 Đang điền ${fieldName}: ${value}`);
+            
+            let fieldFound = false;
+            for (const selector of selectors) {
+              const field = document.querySelector(selector);
+              if (field && field.offsetParent !== null) {
+                console.log(`✅ Tìm thấy ${fieldName} field: ${selector}`);
+                
+                // Use enhanced fillField function
+                const success = fillField(selector, value, fieldName);
+                
+                if (success) {
+                  fieldFound = true;
+                  break;
                 }
               }
-              
-              // 2. Nếu không có, thử input thứ 2 (sau school)
-              if (!fallbackField && textInputs.length >= 2) {
-                fallbackField = textInputs[1];
-                console.log('🎯 Trying second text input as First Name:', fallbackField);
-              }
-              
-              // 3. Test với input được tìm thấy
-              if (fallbackField && fallbackField.offsetParent !== null) {
-                console.log('🧪 Testing fallback First Name field...');
-                fallbackField.value = value;
-                fallbackField.dispatchEvent(new Event('input', { bubbles: true }));
-                fallbackField.dispatchEvent(new Event('change', { bubbles: true }));
-                fallbackField.dispatchEvent(new Event('blur', { bubbles: true }));
-                
-                console.log(`✅ FALLBACK SUCCESS: Đã điền ${fieldName} = "${value}" vào fallback field`);
-                fieldFound = true;
-              }
+            }
+            
+            if (!fieldFound) {
+              console.log(`❌ Không tìm thấy field ${fieldName}`);
+            }
+            
+            // Delay 300ms giữa các field để validation có thời gian xử lý
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        };
+        
+        // Execute sequential fill và đợi hoàn tất
+        fillFieldsSequentially().then(async () => {
+          console.log('✅ Đã điền xong tất cả các field name và email');
+          
+          // Debug: In ra tất cả input fields trên trang
+          const allInputs = document.querySelectorAll('input');
+          console.log('🔍 DEBUG: Tất cả input fields trên trang:');
+          allInputs.forEach((input, index) => {
+            console.log(`Input ${index}:`, {
+              id: input.id,
+              name: input.name,
+              type: input.type,
+              autocomplete: input.autocomplete,
+              placeholder: input.placeholder,
+              className: input.className,
+              ariaLabel: input.getAttribute('aria-label'),
+              visible: input.offsetParent !== null,
+              value: input.value
+            });
+          });
+          
+          // Debug đặc biệt cho First Name
+          console.log('🔍 FIRST NAME DEBUG: Tìm tất cả field có thể là First Name:');
+          const potentialFirstNameFields = Array.from(allInputs).filter(input => {
+            const searchText = (
+              (input.id || '') + ' ' +
+              (input.name || '') + ' ' +
+              (input.placeholder || '') + ' ' +
+              (input.className || '') + ' ' +
+              (input.getAttribute('aria-label') || '') + ' ' +
+              (input.autocomplete || '')
+            ).toLowerCase();
+            
+            return searchText.includes('first') || 
+                   searchText.includes('given') || 
+                   searchText.includes('fname') ||
+                   input.autocomplete === 'given-name';
+          });
+          
+          console.log('🎯 Potential First Name fields found:', potentialFirstNameFields.length);
+          potentialFirstNameFields.forEach((input, index) => {
+            console.log(`First Name Candidate ${index}:`, {
+              element: input,
+              RECOMMENDED_SELECTOR: input.id ? `#${input.id}` : 
+                                    input.name ? `input[name="${input.name}"]` :
+                                    input.autocomplete ? `input[autocomplete="${input.autocomplete}"]` :
+                                    `input[placeholder="${input.placeholder}"]`,
+              id: input.id,
+              name: input.name,
+              placeholder: input.placeholder,
+              autocomplete: input.autocomplete,
+              visible: input.offsetParent !== null,
+              value: input.value
+            });
+          });
+          
+          // Xử lý Date of Birth và ĐỢI cho nó hoàn tất trước khi submit
+          if (studentInfo.dateOfBirth) {
+            console.log('🔍 Bắt đầu điền Date of Birth...');
+            try {
+              await fillDateOfBirth(studentInfo.dateOfBirth);
+              console.log('✅ Đã điền xong Date of Birth, chờ 1 giây để validation hoàn tất...');
+            } catch (error) {
+              console.log('⚠️ Lỗi khi điền Date of Birth:', error);
+            }
+            
+            // Thêm delay để đảm bảo Date of Birth được xử lý hoàn tất
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log('✅ Date of Birth validation hoàn tất');
+          } else {
+            console.log('ℹ️ Không có Date of Birth để điền');
+          }
+          
+          // Bây giờ mới tìm và click nút submit
+          console.log('🔍 Tất cả fields đã được điền, tìm nút Verify student status để click...');
+          
+          const submitSelectors = [
+            '#verify-status-text',
+            'button[type="submit"]',
+            'input[type="submit"]',
+            'button:has-text("Submit")',
+            'button:has-text("Verify")',
+            'button:has-text("Continue")'
+          ];
+          
+          let submitBtn = null;
+          for (const selector of submitSelectors) {
+            submitBtn = document.querySelector(selector);
+            if (submitBtn) {
+              console.log(`✅ Tìm thấy nút submit với selector: ${selector}`, submitBtn);
+              break;
             }
           }
-        });
-        
-        // Xử lý Date of Birth riêng biệt (async)
-        if (studentInfo.dateOfBirth) {
-          setTimeout(() => {
-            fillDateOfBirth(studentInfo.dateOfBirth);
-          }, 500); // Delay để đảm bảo các field khác đã điền xong
-        }
-      });
-      
-      // Thử tìm và tự động click nút submit sau khi điền xong
-      setTimeout(() => {
-        console.log('🔍 Tìm nút Verify student status để tự động click...');
-        
-        const submitSelectors = [
-          '#verify-status-text',
-          'button[type="submit"]',
-          'input[type="submit"]',
-          'button:has-text("Submit")',
-          'button:has-text("Verify")',
-          'button:has-text("Continue")'
-        ];
-        
-        let submitBtn = null;
-        for (const selector of submitSelectors) {
-          submitBtn = document.querySelector(selector);
+          
           if (submitBtn) {
-            console.log(`✅ Tìm thấy nút submit với selector: ${selector}`, submitBtn);
-            break;
-          }
-        }
-        
-        if (submitBtn) {
-          console.log('Tìm thấy nút submit:', submitBtn.textContent || submitBtn.id);
-          
-          // Highlight nút trước khi click (để user biết)
-          submitBtn.style.border = '3px solid red';
-          submitBtn.style.backgroundColor = '#ffeb3b';
-          
-          // Đợi 2-3 giây rồi tự động click
-          setTimeout(() => {
-            console.log('🚀 Tự động click nút Verify student status...');
-            submitBtn.click();
-            console.log('✅ Đã click vào nút Verify student status');
+            console.log('Tìm thấy nút submit:', submitBtn.textContent || submitBtn.id);
             
-            // Sau khi click, đợi trang load rồi tìm nút tiếp theo
+            // Highlight nút trước khi click (để user biết)
+            submitBtn.style.border = '3px solid red';
+            submitBtn.style.backgroundColor = '#ffeb3b';
+            
+            // Đợi 2-3 giây rồi tự động click
             setTimeout(() => {
-              handlePostSubmitInSameTab();
-            }, 3000);
-          }, 2500); // 2.5 giây
-          
-        } else {
-          console.log('❌ Không tìm thấy nút submit để tự động click');
-        }
-      }, 1000);
+              console.log('🚀 Tự động click nút Verify student status...');
+              submitBtn.click();
+              console.log('✅ Đã click vào nút Verify student status');
+              
+              // Sau khi click, đợi trang load rồi tìm nút tiếp theo
+              setTimeout(() => {
+                handlePostSubmitInSameTab();
+              }, 3000);
+            }, 2500); // 2.5 giây
+            
+          } else {
+            console.log('❌ Không tìm thấy nút submit để tự động click');
+          }
+        });
+      });
       
       // Function xử lý sau khi submit trong cùng tab
       function handlePostSubmitInSameTab() {

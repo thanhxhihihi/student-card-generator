@@ -123,15 +123,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       }
       
-      // Tách họ và tên
-      const nameParts = studentName.split(' ');
+      // Tách họ và tên (với logic cải tiến)
+      const nameParts = studentName.split(' ').filter(part => part.trim() !== '');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       
-      // Tạo email với format: tên+họ+4 số ngẫu nhiên+@gmail.com
+      console.log('🔍 DEBUG: Name parsing:', { 
+        originalName: studentName, 
+        nameParts, 
+        firstName, 
+        lastName 
+      });
+      
+      // Detect country dựa vào URL trang hiện tại
+      const currentUrl = window.location.href;
+      let country = 'Vietnam'; // Default
+
+      if (currentUrl.includes('thesinhvienus')) {
+        country = 'United States';
+      } else if (currentUrl.includes('thesinhvien.html') && !currentUrl.includes('thesinhvienus')) {
+        country = 'India';
+      }
+      
+      console.log('🔍 DEBUG: Detected country from URL:', { currentUrl, country });
+      
+      // Tạo email với format: firstName.lastName+4 số ngẫu nhiên+@gmail.com (cải tiến)
       const randomNumbers = Math.floor(1000 + Math.random() * 9000); // 4 số ngẫu nhiên từ 1000-9999
-      const emailPrefix = firstName.toLowerCase() + lastName.toLowerCase().replace(/\s+/g, '') + randomNumbers;
+      const cleanFirstName = firstName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanLastName = lastName.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '');
+      const emailPrefix = `${cleanFirstName}.${cleanLastName}${randomNumbers}`;
       const email = `${emailPrefix}@gmail.com`;
+      
+      console.log('🔍 DEBUG: Email generation:', {
+        cleanFirstName,
+        cleanLastName,
+        emailPrefix,
+        email,
+        randomNumbers
+      });
       
       const studentInfo = {
         school: universityName,
@@ -140,11 +169,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         email: email,
         dateOfBirth: formattedDob,
         department: studentDepartment,
+        country: country,
         extractedAt: new Date().toISOString(),
         source: 'student-card-generator'
       };
       
-      console.log('🔍 DEBUG: Extracted student info for popup:', studentInfo);
+      console.log('🔍 DEBUG: Final extracted student info:', JSON.stringify(studentInfo, null, 2));
+      console.log('🔍 DEBUG: Validation check:', {
+        hasFirstName: !!firstName,
+        hasLastName: !!lastName,
+        hasEmail: !!email,
+        hasSchool: !!universityName,
+        hasCountry: !!country,
+        hasDob: !!formattedDob
+      });
       
       sendResponse({ 
         success: true, 

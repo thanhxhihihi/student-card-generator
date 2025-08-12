@@ -1,4 +1,13 @@
-# 🔧 Quick Debug Guide - SheerID Auto-Fill Issues
+# 🔧 Quick Debug Guide - Student Card Verifier
+
+## ✅ Recent Updates
+1. **Country Detection**: Tự động detect country từ URL trang student card
+2. **Multi-University Support**: Hỗ trợ cả Indian và US universities
+
+## 🌍 Country Detection Logic
+- `thesinhvien.html` → Vietnam
+- `thesinhvienus.html` → United States  
+- Other pages → India (default)
 
 ## 🚨 Current Issues
 1. **First name không được điền**

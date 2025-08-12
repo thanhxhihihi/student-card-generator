@@ -15,7 +15,17 @@ app.use(express.static(__dirname));
 
 // Root route redirect to main page
 app.get('/', (req, res) => {
+    res.redirect('/index.html');
+});
+
+// Route for Indian universities page
+app.get('/india', (req, res) => {
     res.redirect('/thesinhvien.html');
+});
+
+// Route for US universities page
+app.get('/us', (req, res) => {
+    res.redirect('/thesinhvienus.html');
 });
 
 // Proxy endpoint for thispersonnotexist.org

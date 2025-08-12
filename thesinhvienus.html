@@ -3,7 +3,7 @@
 <head>
     <meta name="monetag" content="553507e471efcbe787b8c5c5c01a2aec">
     <meta charset="UTF-8">
-    <title>Student Card Generator - Indian Universities</title>
+    <title>Student Card Generator - US Universities</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Link to external CSS file -->
     <link rel="stylesheet" href="styles.css">
@@ -12,17 +12,17 @@
     <div class="container">
         <div class="header-section">
             <h1 class="main-title">🎓 Student Card Generator</h1>
-            <p class="subtitle">Create professional student ID cards for Indian Universities</p>
+            <p class="subtitle">Create professional student ID cards for US Universities</p>
             <div style="margin-top: 15px;">
                 <a href="./" style="color: rgba(255,255,255,0.8); text-decoration: none; margin-right: 20px; font-size: 0.9rem;">🏠 Home</a>
-                <a href="./thesinhvienus.html" style="color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.9rem;">🇺🇸 US Universities</a>
+                <a href="./thesinhvien.html" style="color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.9rem;">🇮🇳 Indian Universities</a>
             </div>
         </div>
         
         <div class="controls">
             <h2>🚀 Card Generator</h2>
             <div class="btn-container">
-                <button class="btn btn-generate" onclick="generateStudentCard()">
+                <button class="btn btn-generate" onclick="generateUSStudentCard()">
                     <span class="btn-text">🎲 Generate New Card</span>
                 </button>
                 <button class="btn btn-download" onclick="downloadCard()" disabled>
@@ -36,37 +36,37 @@
                 <div id="student-card">
                     <div class="card">
                         <div class="header">
-                            <img class="logo" id="university-logo" src="logo-mahe.png" alt="University Logo">
+                            <img class="logo" id="university-logo" src="logous.png" alt="University Logo">
                             <div class="header-text">
-                                <div class="title" id="university-name">Manipal Academy of Higher Education</div>
-                                <div class="subtitle">STUDENT CARD</div>
+                                <div class="title" id="university-name">Santa Fe College</div>
+                                <div class="subtitle">STUDENT ID CARD</div>
                             </div>
                         </div>
                         <div class="info-section">
                             <img class="avatar" id="student-photo" src="https://channel.mediacdn.vn/prupload/879/2018/05/img20180503174618883.jpg" alt="Student Photo">
                             <div class="details">
-                                <div class="row"><span class="label">👤 Name:</span> <b id="student-name">Jayson Jame</b></div>
+                                <div class="row"><span class="label">👤 Name:</span> <b id="student-name">John Smith</b></div>
                                 <div class="row"><span class="label">📅 Date of Birth:</span> <span id="student-dob">2003-10-10</span></div>
-                                <div class="row"><span class="label">📚 Course:</span> <span id="student-course">2025 - 2028</span></div>
-                                <div class="row"><span class="label">🎒 Class:</span> <span id="student-class">MIT-CS-BTech-2024</span></div>
-                                <div class="row"><span class="label">🏛️ Department:</span> <span id="student-department">Information Technology</span></div>
+                                <div class="row"><span class="label">📚 Program:</span> <span id="student-course">2024 - 2028</span></div>
+                                <div class="row"><span class="label">🎒 Major:</span> <span id="student-class">Computer Science</span></div>
+                                <div class="row"><span class="label">🏛️ Department:</span> <span id="student-department">School of Engineering</span></div>
                             </div>
                         </div>
                         <div class="footer">
-                            ⏰ Valid until: <b id="valid-until">30/12/2027</b>
+                            ⏰ Valid until: <b id="valid-until">12/30/2027</b>
                         </div>
-                        <img class="barcode" id="barcode" src="/api/barcode?data=Manipal Academy of Higher Education&code=Code128" alt="Barcode">
-                        <div class="id-number" id="student-id">🆔 Student ID: MAHE2025.0370467829</div>
-                        <div class="region">🇮🇳 India</div>
+                        <img class="barcode" id="barcode" src="/api/barcode?data=Harvard University&code=Code128" alt="Barcode">
+                        <div class="id-number" id="student-id">🆔 Student ID: HU2025.0370467829</div>
+                        <div class="region">🇺🇸 United States</div>
                     </div>
                 </div>
             </div>
             <div style="min-width:320px;max-width:350px;background:#fffbe7;border-radius:14px;padding:22px 24px 18px 24px;box-shadow:0 2px 12px 0 rgba(0,0,0,0.07);font-size:1rem;color:#7a5a00;line-height:1.6;align-self: flex-start;">
-                <div style="font-weight:bold;font-size:1.15rem;margin-bottom:10px;color:#b48a00;">Lưu ý khi sử dụng</div>
+                <div style="font-weight:bold;font-size:1.15rem;margin-bottom:10px;color:#b48a00;">Usage Notes</div>
                 <ol style="padding-left:20px;margin-bottom:0;">
-                    <li>Avatar sử dụng bên thứ 3 nên không thể kiểm soát được, đôi khi sẽ trả về avatar của trẻ em hoặc người đeo kính. Bạn nên bấm <b>Generate</b> lại để được avatar phù hợp.</li>
-                    <li>Thông tin thẻ trên web chỉ là cho đẹp, bạn nên <b>tải về</b> để hiển thị thông tin rõ ràng và trông thật nhất.</li>
-                    <li>3==================D</li>
+                    <li>Avatar uses third-party service, so it may sometimes return images of children or people with glasses. Click <b>Generate</b> again for a better avatar.</li>
+                    <li>The card information on the web is for display purposes only. You should <b>download</b> it for the clearest and most realistic display.</li>
+                    <li>All generated data is fictional and for demonstration purposes only.</li>
                 </ol>
             </div>
         </div>
@@ -76,19 +76,19 @@
     <footer style="text-align: center; padding: 30px 20px; color: rgba(255,255,255,0.8); margin-top: 50px;">
         <div style="max-width: 600px; margin: 0 auto;">
             <div style="margin-bottom: 20px;">
-                <h3 style="font-size: 1.2rem; margin-bottom: 10px; color: #fff;">🎓 Student Card Generator</h3>
+                <h3 style="font-size: 1.2rem; margin-bottom: 10px; color: #fff;">🎓 US Student Card Generator</h3>
                 <p style="font-size: 0.95rem; line-height: 1.6;">
-                    Generate professional student ID cards for Indian Universities with realistic data and photos. 
+                    Generate professional student ID cards for US Universities with realistic data and photos. 
                     Perfect for testing, demos, or educational purposes.
                 </p>
             </div>
             
             <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-bottom: 20px; font-size: 0.9rem;">
-                <div>✨ <strong>10+</strong> Universities</div>
-                <div>👥 <strong>30+</strong> Names</div>
-                <div>🏫 <strong>16</strong> Departments</div>
+                <div>✨ <strong>20+</strong> US Universities</div>
+                <div>👥 <strong>50+</strong> Names</div>
+                <div>🏫 <strong>15</strong> Schools</div>
                 <div>🖼️ <strong>AI</strong> Generated Photos</div>
-                <div>🔐 <strong>Google One</strong> Verification</div>
+                <div>🔐 <strong>Secure</strong> Generation</div>
             </div>
             
             <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px; font-size: 0.85rem;">
@@ -99,6 +99,6 @@
     </footer>
 
     <!-- Load external JavaScript file -->
-    <script src="student-card.js"></script>
+    <script src="student-card-us.js"></script>
 </body>
 </html>

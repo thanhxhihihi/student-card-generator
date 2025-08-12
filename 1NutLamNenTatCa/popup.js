@@ -6,74 +6,31 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Load saved config và kiểm tra auto-filled data
   chrome.storage.sync.get(['studentInfo', 'autoFilled', 'lastUpdated'], (result) => {
+    console.log('🔍 POPUP DEBUG: Storage result:', result);
+    
     if (result.studentInfo) {
-      // Điền thông tin vào form
+      console.log('🔍 POPUP DEBUG: Loaded student info from storage:', result.studentInfo);
+      console.log('🔍 POPUP DEBUG: Country from storage:', result.studentInfo.country);
+      
+      // Điền thông tin vào form - đừng override country nếu đã có trong storage
+      document.getElementById('country').value = result.studentInfo.country || 'Vietnam'; // Changed default from India to Vietnam
       document.getElementById('school').value = result.studentInfo.school || '';
       document.getElementById('firstName').value = result.studentInfo.firstName || '';
       document.getElementById('lastName').value = result.studentInfo.lastName || '';
       document.getElementById('dateOfBirth').value = result.studentInfo.dateOfBirth || '';
       document.getElementById('email').value = result.studentInfo.email || '';
       
+      console.log('🔍 POPUP DEBUG: Final country value set to:', document.getElementById('country').value);
+      
       // Hiển thị thông báo nếu data được auto-fill từ website
       if (result.autoFilled && result.lastUpdated) {
         const lastUpdated = new Date(result.lastUpdated);
         const timeAgo = getTimeAgo(lastUpdated);
-  // Khi nhấn nút Verify Google One, mở tab Google One, lấy email meta và cập nhật vào popup
-  document.addEventListener('DOMContentLoaded', function () {
-    const verifyBtn = document.getElementById('directVerifyBtn');
-    const emailInput = document.getElementById('email');
-
-    verifyBtn.addEventListener('click', async function () {
-      // Mở tab mới tới Google One AI Student
-      chrome.tabs.create({ url: 'https://one.google.com/u/1/ai-student', active: true }, function (tab) {
-        // Đợi tab load xong rồi inject script lấy meta
-        chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-          if (tabId === tab.id && info.status === 'complete') {
-            chrome.tabs.onUpdated.removeListener(listener);
-            // Inject script lấy content meta[name="og-profile-acct"] (chờ tối đa 10s)
-            chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              func: function () {
-                return new Promise((resolve) => {
-                  let tries = 0;
-                  function check() {
-                    const meta = document.querySelector('meta[name="og-profile-acct"]');
-                    if (meta && meta.content) {
-                      resolve(meta.content);
-                    } else if (tries++ < 50) {
-                      setTimeout(check, 200); // thử lại mỗi 200ms, tối đa 10s
-                    } else {
-                      resolve('');
-                    }
-                  }
-                  check();
-                });
-              }
-            }, (results) => {
-              if (results && results[0] && results[0].result) {
-                const email = results[0].result;
-                // Gửi message về popup
-                chrome.runtime.sendMessage({ action: 'updateEmail', email });
-              }
-            });
-          }
-        });
-      });
-    });
-
-    // Lắng nghe message để cập nhật trường email
-    chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-      if (msg.action === 'updateEmail' && msg.email) {
-        emailInput.value = msg.email;
-        emailInput.style.backgroundColor = '#e8f5e8';
-        setTimeout(() => { emailInput.style.backgroundColor = ''; }, 2000);
-      }
-    });
-  });
+        
         showStatus('info', `📋 Extracted from Student Card (${timeAgo})`);
         
         // Highlight các field được auto-fill
-        const fields = ['school', 'firstName', 'lastName', 'dateOfBirth', 'email'];
+        const fields = ['country', 'school', 'firstName', 'lastName', 'dateOfBirth', 'email'];
         fields.forEach(fieldId => {
           const field = document.getElementById(fieldId);
           if (field && field.value) {
@@ -91,6 +48,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Data được nhập manual hoặc từ direct verify
         showStatus('success', '✅ Ready to verify');
       }
+    } else {
+      // Không có data trong storage - set default values
+      console.log('🔍 POPUP DEBUG: No data in storage, setting defaults');
+      document.getElementById('country').value = 'Vietnam';
+      document.getElementById('school').value = 'Manipal Academy of Higher Education';
+      document.getElementById('firstName').value = 'Lan';
+      document.getElementById('lastName').value = 'Phuong';
+      showStatus('info', 'ℹ️ Enter student information manually');
     }
   });
   
@@ -98,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
   directVerifyBtn.addEventListener('click', function() {
     // Lấy thông tin từ form
     const studentInfo = {
+      country: document.getElementById('country').value,
       school: document.getElementById('school').value,
       firstName: document.getElementById('firstName').value,
       lastName: document.getElementById('lastName').value,
@@ -130,8 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, (response) => {
       if (response && response.success) {
         showStatus('success', '✅ Đang mở Google One... Vui lòng hoàn tất verification!');
-        // Đợi trang SheerID load hoàn toàn rồi mới điền thông tin
-        // (inject script sẽ chờ selector input[name="firstName"] xuất hiện)
+        
         // Tự động đóng popup sau 3 giây
         setTimeout(() => {
           window.close();
@@ -199,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTestDataBtn.addEventListener('click', function() {
       // Test data mô phỏng SheerID
       const testData = {
+        country: "India",
         school: "Indian Institute of Technology Madras (Chennai, Tamil Nadu)",
         firstName: "Lan",
         lastName: "Phuong",
@@ -209,6 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
       };
       
       // Điền vào form
+      document.getElementById('country').value = testData.country;
       document.getElementById('school').value = testData.school;
       document.getElementById('firstName').value = testData.firstName;
       document.getElementById('lastName').value = testData.lastName;
@@ -216,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('email').value = testData.email;
       
       // Highlight các field
-      const fields = ['school', 'firstName', 'lastName', 'dateOfBirth', 'email'];
+      const fields = ['country', 'school', 'firstName', 'lastName', 'dateOfBirth', 'email'];
       fields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
@@ -258,13 +225,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentTab = tabs[0];
         
         // Kiểm tra xem tab hiện tại có phải là student card website không
-        const allowedUrls = ['localhost:3000', 'thesinhvien.html'];
+        const allowedUrls = ['localhost:3000', 'thesinhvien.html', 'thesinhvienus.html'];
         const isValidUrl = allowedUrls.some(url => currentTab.url.includes(url));
 
         if (!isValidUrl) {
           const errorMessage = `
             ❌ Xin vui lòng truy cập vào trang web 
-            https://hungvu.id.vn/thesinhvien.html
+            https://hungvu.id.vn/thesinhvien.html (Indian Universities)
+            hoặc https://hungvu.id.vn/thesinhvienus.html (US Universities)
             để có thể sử dụng tiện ích.
           `;
           showStatus('error', errorMessage.trim());
@@ -307,11 +275,22 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('🔍 DEBUG: Successfully extracted:', response.studentInfo);
             
             // Điền thông tin vào form
-            document.getElementById('school').value = response.studentInfo.school || '';
-            document.getElementById('firstName').value = response.studentInfo.firstName || '';
-            document.getElementById('lastName').value = response.studentInfo.lastName || '';
-            document.getElementById('dateOfBirth').value = response.studentInfo.dateOfBirth || '';
-            document.getElementById('email').value = response.studentInfo.email || '';
+            const info = response.studentInfo;
+            document.getElementById('country').value = info.country || 'India';
+            document.getElementById('school').value = info.school || '';
+            document.getElementById('firstName').value = info.firstName || '';
+            document.getElementById('lastName').value = info.lastName || '';
+            document.getElementById('dateOfBirth').value = info.dateOfBirth || '';
+            document.getElementById('email').value = info.email || '';
+            
+            console.log('🔍 DEBUG: Form filled with values:', {
+              country: document.getElementById('country').value,
+              school: document.getElementById('school').value,
+              firstName: document.getElementById('firstName').value,
+              lastName: document.getElementById('lastName').value,
+              dateOfBirth: document.getElementById('dateOfBirth').value,
+              email: document.getElementById('email').value
+            });
             
             // Save data với auto-filled flag
             chrome.storage.sync.set({
@@ -320,10 +299,10 @@ document.addEventListener('DOMContentLoaded', function() {
               lastUpdated: Date.now()
             });
             
-            showStatus('success', '✅ Student info extracted successfully!');
+            showStatus('success', `✅ Extracted: ${info.firstName} ${info.lastName} | ${info.email} | ${info.country}`);
             
             // Highlight các field được extract
-            const fields = ['school', 'firstName', 'lastName', 'dateOfBirth', 'email'];
+            const fields = ['country', 'school', 'firstName', 'lastName', 'dateOfBirth', 'email'];
             fields.forEach(fieldId => {
               const field = document.getElementById(fieldId);
               if (field && field.value) {

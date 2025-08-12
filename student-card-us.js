@@ -1,96 +1,125 @@
-// Danh sách các trường đại học
-const universities = [
+// Danh sách các trường đại học Mỹ
+const usUniversities = [
     // {
-    //     name: "Indian Institute of Technology Bombay",
-    //     shortName: "IITB",
-    //     logo: "https://upload.wikimedia.org/wikipedia/en/1/1d/Indian_Institute_of_Technology_Bombay_Logo.svg"
+    //     name: "Harvard University",
+    //     shortName: "HU",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Harvard_University_logo.svg/1200px-Harvard_University_logo.svg.png"
     // },
     // {
-    //     name: "Indian Institute of Technology Delhi",
-    //     shortName: "IITD",
-    //     logo: "https://upload.wikimedia.org/wikipedia/en/f/fd/Indian_Institute_of_Technology_Delhi_Logo.svg"
+    //     name: "Stanford University",
+    //     shortName: "SU",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Seal_of_Leland_Stanford_Junior_University.svg/1200px-Seal_of_Leland_Stanford_Junior_University.svg.png"
     // },
     // {
-    //     name: "Indian Institute of Science Bangalore",
-    //     shortName: "IISc",
-    //     logo: "https://engageindia.ca/wp-content/uploads/2017/01/IISc-500x500.png"
+    //     name: "Massachusetts Institute of Technology",
+    //     shortName: "MIT",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/MIT_logo.svg/1200px-MIT_logo.svg.png"
     // },
     // {
-    //     name: "Indian Institute of Technology Madras",
-    //     shortName: "IITM",
-    //     logo: "https://upload.wikimedia.org/wikipedia/en/6/69/IIT_Madras_Logo.svg"
+    //     name: "Yale University",
+    //     shortName: "YU",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Yale_University_Shield_1.svg/1200px-Yale_University_Shield_1.svg.png"
     // },
     // {
-    //     name: "Indian Institute of Technology Kanpur",
-    //     shortName: "IITK",
-    //     logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzlbzSORQuaiBM1uuqdVUtJh3WB0-YjbTMiA&s"
+    //     name: "Princeton University",
+    //     shortName: "PU",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Princeton_seal.svg/1200px-Princeton_seal.svg.png"
     // },
     // {
-    //     name: "Indian Institute of Technology Kharagpur",
-    //     shortName: "IITKgp",
-    //     logo: "https://upload.wikimedia.org/wikipedia/en/1/1c/IIT_Kharagpur_Logo.svg"
+    //     name: "University of California, Berkeley",
+    //     shortName: "UCB",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/University_of_California%2C_Berkeley_logo.svg/1200px-University_of_California%2C_Berkeley_logo.svg.png"
     // },
     // {
-    //     name: "University of Delhi",
+    //     name: "Columbia University",
+    //     shortName: "CU",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Columbia_University_shield.svg/1200px-Columbia_University_shield.svg.png"
+    // },
+    // {
+    //     name: "University of Chicago",
+    //     shortName: "UC",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/University_of_Chicago_shield.svg/1200px-University_of_Chicago_shield.svg.png"
+    // },
+    // {
+    //     name: "Carnegie Mellon University",
+    //     shortName: "CMU",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Carnegie_Mellon_University_seal.svg/1200px-Carnegie_Mellon_University_seal.svg.png"
+    // },
+    // {
+    //     name: "New York University",
+    //     shortName: "NYU",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/New_York_University_seal.svg/1200px-New_York_University_seal.svg.png"
+    // },
+    // {
+    //     name: "University of Pennsylvania",
+    //     shortName: "UPenn",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/UPenn_shield_with_banner.svg/1200px-UPenn_shield_with_banner.svg.png"
+    // },
+    // {
+    //     name: "Duke University",
     //     shortName: "DU",
-    //     logo: "https://upload.wikimedia.org/wikipedia/commons/e/e9/University_of_delhi_logo.png"
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Duke_University_seal.svg/1200px-Duke_University_seal.svg.png"
     // },
     // {
-    //     name: "Jawaharlal Nehru University",
-    //     shortName: "JNU",
-    //     logo: "https://swarajya.gumlet.io/swarajya/2020-04/097d294c-e517-4825-ab5b-4d02bf9dd45c/JNU_Logo.jpg?w=610&q=50&compress=true&format=auto"
+    //     name: "Northwestern University",
+    //     shortName: "NU",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Northwestern_University_seal.svg/1200px-Northwestern_University_seal.svg.png"
     // },
     // {
-    //     name: "Indian Institute of Management Ahmedabad",
-    //     shortName: "IIMA",
-    //     logo: "https://upload.wikimedia.org/wikipedia/en/thumb/c/cd/IIM%2C_Ahmedabad_Logo.svg/1200px-IIM%2C_Ahmedabad_Logo.svg.png"
-    // },
-    // {
-    //     name: "Banaras Hindu University",
-    //     shortName: "BHU",
-    //     logo: "https://upload.wikimedia.org/wikipedia/en/c/ca/Banaras_Hindu_University_Emblem_Seal_Transparent.png"
+    //     name: "California Institute of Technology",
+    //     shortName: "Caltech",
+    //     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Caltech_Logo.svg/1200px-Caltech_Logo.svg.png"
     // },
     {
-        name: "Manipal Academy of Higher Education",
-        shortName: "MAHE",
-        logo: "logo-mahe.png"
+        name: "Santa Fe College",
+        shortName: "SFC",
+        logo: "logous.png"
     }
 ];
 
+// Tên Mỹ phổ biến
+const usFirstNames = [
+    // Male names
+    "James", "Robert", "John", "Michael", "David", "William", "Richard", "Thomas", "Christopher", "Charles",
+    "Daniel", "Matthew", "Anthony", "Mark", "Donald", "Steven", "Paul", "Joshua", "Kenneth", "Kevin",
+    "Brian", "George", "Timothy", "Ronald", "Jason", "Edward", "Jeffrey", "Ryan", "Jacob", "Gary",
+    "Nicholas", "Eric", "Jonathan", "Stephen", "Larry", "Justin", "Scott", "Brandon", "Benjamin", "Samuel",
+    
+    // Female names
+    "Mary", "Patricia", "Jennifer", "Linda", "Elizabeth", "Barbara", "Susan", "Jessica", "Sarah", "Karen",
+    "Lisa", "Nancy", "Betty", "Helen", "Sandra", "Donna", "Carol", "Ruth", "Sharon", "Michelle",
+    "Laura", "Amy", "Kimberly", "Deborah", "Dorothy", "Kathleen", "Angela", "Brenda", "Emma", "Olivia"
+];
 
-// Tạo tên random dựa trên các mẫu âm tiết phổ biến (syllable-based)
-const nameSyllables = {
-    first: [
-        "Aa", "Vi", "Ad", "Vi", "Ar", "Sa", "Re", "Ay", "Kr", "Is", "An", "Di", "Aa", "Ka", "Anv", "San", "La", "My", "Pi", "Ar", "Kab", "Shi", "Ath", "Ru", "Pri", "Ri", "Sar", "Ta", "Ni", "Rah", "Roh", "Am", "Vi", "Dee", "Raj", "Sur", "Mah", "Kir", "Ne", "Poo", "Sne", "Pre", "Sun", "Kav", "Rek", "Mee", "Gee", "Shiv", "Shubh", "Abhi", "Aksh", "Aj", "Vi", "San", "Man"
-    ],
-    last: [
-        "sharma", "patel", "gupta", "singh", "kumar", "reddy", "agarwal", "khan", "joshi", "verma", "mehta", "nair", "roy", "das", "bose", "iyer", "ghosh", "banerjee", "kulkarni", "desai", "shah", "mishra", "pandey", "yadav", "tiwari", "agrawal", "shukla", "saxena", "srivastava", "trivedi", "jain", "arora", "malhotra", "kapoor", "chopra", "bhatia", "sethi", "khanna", "aggarwal", "goel", "mittal", "bansal", "goyal", "jindal", "singhal", "ahluwalia"
-    ]
-};
+const usLastNames = [
+    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez",
+    "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin",
+    "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson",
+    "Walker", "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores",
+    "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell", "Carter", "Roberts"
+];
 
-function randomSyllable(arr, min = 1, max = 2) {
-    // Chọn số lượng âm tiết ngẫu nhiên trong khoảng [min, max]
-    const count = min + Math.floor(Math.random() * (max - min + 1));
-    let result = "";
-    for (let i = 0; i < count; i++) {
-        result += arr[Math.floor(Math.random() * arr.length)];
-    }
-    return result.charAt(0).toUpperCase() + result.slice(1);
+function generateUSFullName() {
+    const firstName = getRandomElement(usFirstNames);
+    const lastName = getRandomElement(usLastNames);
+    return `${firstName} ${lastName}`;
 }
 
-function generateFullName() {
-    // Tạo tên với 2-3 âm tiết cho first, 1 last (không có middle)
-    const firstName = randomSyllable(nameSyllables.first, 2, 3);
-    const lastName = randomSyllable(nameSyllables.last, 1, 1);
-    return `${firstName} ${lastName.charAt(0).toUpperCase() + lastName.slice(1)}`;
-}
+// Các trường/khoa trong trường đại học Mỹ
+const usSchools = [
+    "School of Engineering", "College of Arts & Sciences", "Business School", "School of Medicine",
+    "Law School", "School of Education", "College of Liberal Arts", "School of Nursing",
+    "School of Computer Science", "College of Natural Sciences", "School of Social Work",
+    "Graduate School", "School of Public Health", "School of Architecture", "College of Fine Arts"
+];
 
-// Danh sách chuyên ngành
-const departments = [
-    "Computer Science", "Information Technology", "Electronics Engineering",
-    "Mechanical Engineering", "Civil Engineering", "Chemical Engineering",
-    "Biotechnology", "Physics", "Mathematics", "Chemistry", "Business Administration",
-    "Economics", "Psychology", "English Literature", "History", "Political Science"
+// Các chuyên ngành phổ biến ở Mỹ
+const usMajors = [
+    "Computer Science", "Business Administration", "Psychology", "Biology", "Engineering",
+    "Economics", "English Literature", "Political Science", "Communications", "Pre-Med",
+    "Mathematics", "History", "Chemistry", "Physics", "Art", "Music", "Philosophy",
+    "Sociology", "International Relations", "Environmental Science", "Finance", "Marketing",
+    "Data Science", "Mechanical Engineering", "Electrical Engineering", "Civil Engineering"
 ];
 
 // Lưu danh sách ảnh trả về từ API để chọn
@@ -108,7 +137,7 @@ async function getStudentPhotoList() {
             body: JSON.stringify({
                 "type": "R",
                 "age": "21-35",
-                "race": "asian",
+                "race": "white",
                 "emotion": "none"
             })
         });
@@ -118,7 +147,7 @@ async function getStudentPhotoList() {
                 // Trả về mảng URL ảnh
                 return data.fc.map(base64Image => `/api/image/${base64Image}`);
             } else {
-                throw new Error('Không có ảnh trong response');
+                throw new Error('No images in response');
             }
         } else {
             const errorData = await response.json();
@@ -168,9 +197,9 @@ function getRandomElement(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
-function generateRandomDate() {
+function generateUSRandomDate() {
     const today = new Date();
-    const minAge = 20;
+    const minAge = 18;
     const maxAge = 25;
     
     const randomAge = minAge + Math.floor(Math.random() * (maxAge - minAge + 1));
@@ -178,56 +207,36 @@ function generateRandomDate() {
     const birthMonth = Math.floor(Math.random() * 12) + 1;
     const birthDay = Math.floor(Math.random() * 28) + 1;
     
-    return `${birthYear}-${birthMonth.toString().padStart(2, '0')}-${birthDay.toString().padStart(2, '0')}`;
+    // US format: MM/DD/YYYY
+    return `${birthMonth.toString().padStart(2, '0')}/${birthDay.toString().padStart(2, '0')}/${birthYear}`;
 }
 
-function generateStudentID(universityShort) {
+function generateUSStudentID(universityShort) {
     const year = new Date().getFullYear();
     const randomNumber = Math.floor(Math.random() * 9999999999).toString().padStart(10, '0');
     return `${universityShort}${year}.${randomNumber}`;
 }
 
-function generateCourse() {
+function generateUSCourse() {
     const currentYear = new Date().getFullYear();
     const startYear = currentYear;
     const endYear = startYear + 4;
     return `${startYear} - ${endYear}`;
 }
 
-function generateClass() {
-    const departments = ["CS", "IT", "EE", "ME", "CE", "CHE", "BT"];
-    const degrees = ["BTech", "MTech", "PhD", "BSc", "MSc"];
-    const year = new Date().getFullYear();
-    
-    return `${getRandomElement(departments)}-${getRandomElement(degrees)}-${year}`;
-}
-
-// ...existing code...
-
-function generateValidUntil() {
-    // Random ngày hợp lệ trong khoảng từ 01/07/2028 đến 31/07/2029
+function generateUSValidUntil() {
+    // Random valid date between 2028-2029
     const startYear = 2028;
     const endYear = 2029;
-    const month = 6; // Tháng 7 (0-based)
+    const month = Math.floor(Math.random() * 12) + 1;
     const year = Math.random() < 0.5 ? startYear : endYear;
-    let day;
-    if (year === startYear) {
-        // Nếu là 2028, random từ 1 đến 31
-        day = Math.floor(Math.random() * 31) + 1;
-    } else {
-        // Nếu là 2029, random từ 1 đến 31
-        day = Math.floor(Math.random() * 31) + 1;
-    }
-    // Tạo object Date
-    const validDate = new Date(year, month, day);
-    // Định dạng dd/mm/yyyy
-    const dd = validDate.getDate().toString().padStart(2, '0');
-    const mm = (validDate.getMonth() + 1).toString().padStart(2, '0');
-    const yyyy = validDate.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
+    const day = Math.floor(Math.random() * 28) + 1;
+    
+    // US format: MM/DD/YYYY
+    return `${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year}`;
 }
 
-async function generateStudentCard() {
+async function generateUSStudentCard() {
     // Enhanced loading state with better UX
     const generateBtn = document.querySelector('.btn-generate');
     const btnText = generateBtn.querySelector('.btn-text') || generateBtn;
@@ -244,22 +253,21 @@ async function generateStudentCard() {
         // Add a small delay for better UX perception
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        const university = getRandomElement(universities);
-        const studentName = generateFullName();
-        const department = getRandomElement(departments);
-        const dob = generateRandomDate();
-        const course = generateCourse();
-        const studentClass = generateClass();
-        const studentID = generateStudentID(university.shortName);
-        const validUntil = generateValidUntil();
-
+        const university = getRandomElement(usUniversities);
+        const studentName = generateUSFullName();
+        const school = getRandomElement(usSchools);
+        const major = getRandomElement(usMajors);
+        const dob = generateUSRandomDate();
+        const course = generateUSCourse();
+        const studentID = generateUSStudentID(university.shortName);
+        const validUntil = generateUSValidUntil();
 
         // Show progress update
         btnText.innerHTML = '<span class="loading-spinner"></span>Loading Photos...';
 
         // Lấy danh sách ảnh và lưu lại
         studentPhotoList = await getStudentPhotoList();
-        if (!studentPhotoList || studentPhotoList.length === 0) throw new Error('Không có ảnh trả về');
+        if (!studentPhotoList || studentPhotoList.length === 0) throw new Error('No photos available');
         // Chọn ngẫu nhiên 1 ảnh làm mặc định
         const randomIndex = Math.floor(Math.random() * studentPhotoList.length);
         const studentPhoto = studentPhotoList[randomIndex];
@@ -272,9 +280,9 @@ async function generateStudentCard() {
         document.getElementById('student-name').textContent = studentName;
         document.getElementById('student-dob').textContent = dob;
         document.getElementById('student-course').textContent = course;
-        document.getElementById('student-class').textContent = studentClass;
-        document.getElementById('student-department').textContent = department;
-        document.getElementById('student-id').innerHTML = `Student ID: ${studentID}`;
+        document.getElementById('student-class').textContent = major;
+        document.getElementById('student-department').textContent = school;
+        document.getElementById('student-id').innerHTML = `🆔 Student ID: ${studentID}`;
         document.getElementById('valid-until').textContent = validUntil;
 
         // Load images with progress feedback
@@ -631,9 +639,9 @@ async function drawCardManually() {
     const studentId = document.getElementById('student-id').textContent;
     ctx.fillText(studentId, cardX + 60, footerY);
 
-    // India (bottom right)
+    // United States (bottom right)
     ctx.textAlign = 'right';
-    ctx.fillText('India', cardX + cardWidth - 60, footerY);
+    ctx.fillText('United States', cardX + cardWidth - 60, footerY);
     
     // Download the canvas
     canvas.toBlob((blob) => {
@@ -704,8 +712,8 @@ function showNotification(message, type = 'info', duration = 3000) {
 
 // Generate initial card khi trang được load
 window.onload = async function() {
-    showNotification('🚀 Welcome to Student Card Generator!<br><small>Generating your first card...</small>', 'info', 3000);
-    await generateStudentCard();
+    showNotification('🚀 Welcome to US Student Card Generator!<br><small>Generating your first card...</small>', 'info', 3000);
+    await generateUSStudentCard();
 };
 
 // Student Information Extract - Chỉ lấy thông tin, không verify ngay
@@ -850,7 +858,7 @@ function extractStudentInfo() {
             email: '',
             dateOfBirth: '',
             department: '',
-            country: 'India'  // Default country in error case
+            country: 'United States'  // Default country for US page
         };
     }
 }
@@ -858,18 +866,22 @@ function extractStudentInfo() {
 // Helper function để tạo email domain từ tên trường
 function getEmailDomainFromUniversity(universityName) {
     const domainMap = {
-        // 'Indian Institute of Technology Bombay': 'iitb.ac.in',
-        // 'Indian Institute of Technology Delhi': 'iitd.ac.in',
-        // 'Indian Institute of Science Bangalore': 'iisc.ac.in',
-        // 'Indian Institute of Technology Madras': 'iitm.ac.in',
-        // 'Indian Institute of Technology Kanpur': 'iitk.ac.in',
-        // 'Indian Institute of Technology Kharagpur': 'iitkgp.ac.in',
-        // 'University of Delhi': 'du.ac.in',
-        // 'Jawaharlal Nehru University': 'jnu.ac.in',
-        // 'Indian Institute of Management Ahmedabad': 'iima.ac.in',
-        // 'Banaras Hindu University': 'bhu.ac.in',
-        'Santa Fe College': 'santafe.edu'
+        // 'Harvard University': 'harvard.edu',
+        // 'Stanford University': 'stanford.edu',
+        // 'Massachusetts Institute of Technology': 'mit.edu',
+        // 'Yale University': 'yale.edu',
+        // 'Princeton University': 'princeton.edu',
+        // 'University of California, Berkeley': 'berkeley.edu',
+        // 'Columbia University': 'columbia.edu',
+        // 'University of Chicago': 'uchicago.edu',
+        // 'Carnegie Mellon University': 'cmu.edu',
+        // 'New York University': 'nyu.edu',
+        // 'University of Pennsylvania': 'upenn.edu',
+        // 'Duke University': 'duke.edu',
+        // 'Northwestern University': 'northwestern.edu',
+        // 'California Institute of Technology': 'caltech.edu',
+        'Santa Fe College': 'sfcollege.edu'
     };
     
-    return domainMap[universityName] || 'student.edu.in';
+    return domainMap[universityName] || 'student.edu';
 }
